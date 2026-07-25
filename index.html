@@ -39,6 +39,7 @@
     .badge-low { background: #d1fae5; color: #059669; }
     .badge-event { background: #E8F5E9; color: #1B5E20; }
     .badge-note { background: #f3e8ff; color: #7c3aed; }
+    .badge-tag { padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; display: inline-block; margin-right: 4px; margin-bottom: 4px; }
     .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: inherit; }
     .btn-primary { background: #2E7D32; color: white; }
     .btn-primary:hover { background: #1B5E20; }
@@ -46,6 +47,7 @@
     .btn-danger:hover { background: #dc2626; }
     .btn-ghost { background: transparent; color: #64748b; }
     .btn-ghost:hover { background: #f1f5f9; }
+    .btn-small { padding: 4px 8px; font-size: 0.85rem; }
     .form-group { margin-bottom: 16px; }
     .form-label { display: block; margin-bottom: 6px; font-weight: 600; color: #334155; font-size: 0.9rem; }
     .form-input, .form-textarea, .form-select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box; font-family: inherit; }
@@ -83,13 +85,22 @@
     .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
     .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-size: 0.85rem; font-weight: 500; font-family: inherit; }
     .filter-btn.active { background: #2E7D32; color: white; border-color: #2E7D32; }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .search-input { flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; }
     .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
     .app-title { margin: 0; color: #1e293b; font-size: 1.5rem; }
+    .tag-input { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+    .tag-chip { background: #e2e8f0; color: #334155; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; }
+    .tag-chip button { background: none; border: none; cursor: pointer; color: #64748b; font-weight: bold; }
+    .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+    .color-option { width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
+    .color-option.selected { border-color: #334155; }
     @media (max-width: 600px) {
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .calendar-grid { gap: 4px; }
       .calendar-day { min-height: 50px; padding: 4px; }
       .app-title { font-size: 1.25rem; }
+      .search-input { min-width: 150px; }
     }
   </style>
 </head>
@@ -97,7 +108,10 @@
   <div id="app">
     <div class="header-bar">
       <h1 class="app-title">🌲 RemindMe</h1>
-      <button class="btn btn-primary" onclick="openAddModal()">+ Add New</button>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-ghost btn-small" onclick="openCategoriesModal()">📁 Categories</button>
+        <button class="btn btn-primary" onclick="openAddModal()">+ Add New</button>
+      </div>
     </div>
 
     <div class="tabs">
@@ -105,6 +119,15 @@
       <button class="tab" onclick="switchTab('tasks')" id="tab-tasks">Tasks</button>
       <button class="tab" onclick="switchTab('events')" id="tab-events">Events</button>
       <button class="tab" onclick="switchTab('notes')" id="tab-notes">Notes</button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-bar" id="searchBar" style="display: none;">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search items..." onkeyup="handleSearch()">
+      <select class="form-select" id="categoryFilter" style="flex: 0.5; min-width: 120px;" onchange="handleSearch()">
+        <option value="">All Categories</option>
+      </select>
+      <button class="btn btn-ghost btn-small" onclick="resetSearch()">Clear</button>
     </div>
 
     <div id="content"></div>
@@ -144,6 +167,16 @@
             <option value="low">Low</option>
           </select>
         </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="newCategory">
+            <option value="">No Category</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tags (comma separated)</label>
+          <input type="text" class="form-input" id="newTags" placeholder="e.g., work, urgent, follow-up">
+        </div>
         <div style="display: flex; gap: 12px; justify-content: flex-end;">
           <button class="btn btn-ghost" onclick="closeModal('addModal')">Cancel</button>
           <button class="btn btn-primary" onclick="saveNewItem()">Save</button>
@@ -180,51 +213,92 @@
             <option value="low">Low</option>
           </select>
         </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="editCategory">
+            <option value="">No Category</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tags (comma separated)</label>
+          <input type="text" class="form-input" id="editTags" placeholder="e.g., work, urgent, follow-up">
+        </div>
         <div style="display: flex; gap: 12px; justify-content: flex-end;">
           <button class="btn btn-ghost" onclick="closeModal('editModal')">Cancel</button>
           <button class="btn btn-primary" onclick="saveEditItem()">Update</button>
         </div>
       </div>
     </div>
+
+    <!-- Categories Modal -->
+    <div id="categoriesModal" class="modal-overlay" style="display: none;">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Manage Categories</div>
+          <button class="close-btn" onclick="closeModal('categoriesModal')">&times;</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category Name</label>
+          <input type="text" class="form-input" id="newCategoryName" placeholder="e.g., Work, Personal">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div class="color-picker" id="colorPicker"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addCategory()" style="width: 100%; margin-bottom: 20px;">Add Category</button>
+        <div class="section-title">Existing Categories</div>
+        <div id="categoriesList"></div>
+      </div>
+    </div>
   </div>
 
   <script>
-    // Data storage using localStorage for persistence
-    let data = { tasks: [], events: [], notes: [] };
+    const COLORS = ['#2E7D32', '#1e88e5', '#f57c00', '#c2185b', '#6a1b9a', '#00796b', '#d32f2f', '#7b1fa2'];
+    let data = { tasks: [], events: [], notes: [], categories: [] };
     let currentTab = 'dashboard';
     let taskFilter = 'all';
     let currentMonth = new Date();
-    const STORAGE_KEY = 'remindme_data';
+    let searchQuery = '';
+    let selectedCategory = '';
+    let selectedColor = '#2E7D32';
+    const STORAGE_KEY = 'remindme_data_v2';
 
     function loadData() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         try {
           data = JSON.parse(saved);
+          if (!data.categories) data.categories = [];
           return;
         } catch(e) {}
       }
-      seedData();
+      initializeData();
     }
 
     function saveData() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      updateCategorySelects();
     }
 
-    function seedData() {
+    function initializeData() {
       const now = new Date();
+      data.categories = [
+        { id: 'c1', name: 'Work', color: '#1e88e5' },
+        { id: 'c2', name: 'Personal', color: '#2E7D32' },
+        { id: 'c3', name: 'Health', color: '#d32f2f' }
+      ];
       data.tasks = [
-        { id: 't1', title: 'Review quarterly report', desc: 'Go through Q3 financials and prepare summary', datetime: new Date(now.getTime() + 86400000).toISOString(), priority: 'high', done: false },
-        { id: 't2', title: 'Team standup', desc: 'Daily sync with engineering team', datetime: new Date(now.getTime() + 3600000).toISOString(), priority: 'medium', done: false },
-        { id: 't3', title: 'Update documentation', desc: 'Refresh API docs with new endpoints', datetime: new Date(now.getTime() + 172800000).toISOString(), priority: 'low', done: true }
+        { id: 't1', title: 'Review quarterly report', desc: 'Go through Q3 financials and prepare summary', datetime: new Date(now.getTime() + 86400000).toISOString(), priority: 'high', done: false, category: 'c1', tags: ['work', 'urgent'] },
+        { id: 't2', title: 'Team standup', desc: 'Daily sync with engineering team', datetime: new Date(now.getTime() + 3600000).toISOString(), priority: 'medium', done: false, category: 'c1', tags: ['work'] },
+        { id: 't3', title: 'Update documentation', desc: 'Refresh API docs with new endpoints', datetime: new Date(now.getTime() + 172800000).toISOString(), priority: 'low', done: true, category: 'c1', tags: ['documentation'] }
       ];
       data.events = [
-        { id: 'e1', title: 'Product Launch Meeting', desc: 'Discuss go-to-market strategy', datetime: new Date(now.getTime() + 86400000 * 2).toISOString() },
-        { id: 'e2', title: 'Client Call - Acme Corp', desc: 'Quarterly business review', datetime: new Date(now.getTime() + 86400000 * 5).toISOString() }
+        { id: 'e1', title: 'Product Launch Meeting', desc: 'Discuss go-to-market strategy', datetime: new Date(now.getTime() + 86400000 * 2).toISOString(), category: 'c1', tags: ['meeting'] },
+        { id: 'e2', title: 'Doctor Appointment', desc: 'Annual checkup', datetime: new Date(now.getTime() + 86400000 * 5).toISOString(), category: 'c3', tags: ['health'] }
       ];
       data.notes = [
-        { id: 'n1', title: 'Project Ideas 2026', desc: '1. AI-powered scheduling assistant\n2. Automated expense tracker\n3. Smart home energy dashboard\n\nNeed to research APIs and feasibility.' },
-        { id: 'n2', title: 'Meeting Notes - Design Review', desc: 'Key decisions:\n- Dark mode as default\n- Mobile-first approach\n- Accessibility audit next sprint\n\nAction items assigned to Sarah.' }
+        { id: 'n1', title: 'Project Ideas 2026', desc: '1. AI-powered scheduling\n2. Expense tracker\n3. Smart dashboard', category: 'c1', tags: ['ideas'] },
+        { id: 'n2', title: 'Design Review Notes', desc: 'Dark mode as default\nMobile-first approach', category: 'c1', tags: ['design'] }
       ];
       saveData();
     }
@@ -233,9 +307,52 @@
 
     function switchTab(tab) {
       currentTab = tab;
+      searchQuery = '';
+      selectedCategory = '';
+      document.getElementById('searchInput').value = '';
+      document.getElementById('categoryFilter').value = '';
+      document.getElementById('searchBar').style.display = tab !== 'dashboard' ? 'flex' : 'none';
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.getElementById('tab-' + tab).classList.add('active');
       render();
+    }
+
+    function handleSearch() {
+      searchQuery = document.getElementById('searchInput').value.toLowerCase();
+      selectedCategory = document.getElementById('categoryFilter').value;
+      render();
+    }
+
+    function resetSearch() {
+      searchQuery = '';
+      selectedCategory = '';
+      document.getElementById('searchInput').value = '';
+      document.getElementById('categoryFilter').value = '';
+      render();
+    }
+
+    function getCategoryName(categoryId) {
+      if (!categoryId) return 'Uncategorized';
+      const cat = data.categories.find(c => c.id === categoryId);
+      return cat ? cat.name : 'Unknown';
+    }
+
+    function getCategoryColor(categoryId) {
+      if (!categoryId) return '#cbd5e1';
+      const cat = data.categories.find(c => c.id === categoryId);
+      return cat ? cat.color : '#cbd5e1';
+    }
+
+    function filterItems(items) {
+      return items.filter(item => {
+        const matchesSearch = !searchQuery || 
+          item.title.toLowerCase().includes(searchQuery) || 
+          (item.desc && item.desc.toLowerCase().includes(searchQuery)) ||
+          (item.tags && item.tags.some(t => t.toLowerCase().includes(searchQuery)));
+        
+        const matchesCategory = !selectedCategory || item.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+      });
     }
 
     function getReminderStatus(datetime) {
@@ -250,10 +367,15 @@
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
+    function renderTags(tags) {
+      if (!tags || tags.length === 0) return '';
+      return tags.map(tag => `<span class="badge-tag" style="background: #f3e8ff; color: #7c3aed;">${escapeHtml(tag)}</span>`).join('');
+    }
+
     function renderDashboard() {
       const upcomingTasks = data.tasks.filter(t => !t.done).sort((a,b) => new Date(a.datetime) - new Date(b.datetime)).slice(0, 3);
       const upcomingEvents = data.events.sort((a,b) => new Date(a.datetime) - new Date(b.datetime)).slice(0, 3);
-      const recentNotes = data.notes.sort((a,b) => new Date(b.datetime) - new Date(a.datetime)).slice(0, 2);
+      const recentNotes = data.notes.slice(0, 2);
       const totalPending = data.tasks.filter(t => !t.done).length;
       const totalEvents = data.events.length;
       const totalNotes = data.notes.length;
@@ -279,7 +401,9 @@
               </div>
               <span class="badge badge-${t.priority}">${t.priority}</span>
             </div>
+            <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">${getCategoryName(t.category)}</div>
             <div class="card-meta">${formatDate(t.datetime)} • ${status.text}</div>
+            ${renderTags(t.tags)}
           </div>`;
         });
       }
@@ -294,24 +418,9 @@
               <span class="card-title">${escapeHtml(e.title)}</span>
               <span class="badge badge-event">Event</span>
             </div>
+            <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">${getCategoryName(e.category)}</div>
             <div class="card-meta">${formatDate(e.datetime)}</div>
-            <div style="margin-top: 8px; color: #475569; font-size: 0.9rem;">${escapeHtml(e.desc)}</div>
-          </div>`;
-        });
-      }
-
-      html += `<div class="section-title">📝 Recent Notes</div>`;
-      if (recentNotes.length === 0) {
-        html += `<div class="card empty-state">No notes yet.</div>`;
-      } else {
-        recentNotes.forEach(n => {
-          html += `<div class="card" style="cursor: pointer;" onclick="openEditModal('${n.id}', 'note')">
-            <div class="card-header">
-              <span class="card-title">${escapeHtml(n.title)}</span>
-              <span class="badge badge-note">Note</span>
-            </div>
-            <div class="note-preview">${escapeHtml(n.desc).replace(/\n/g, '<br>')}</div>
-            <div class="card-meta" style="margin-top: 8px;">${formatDate(n.datetime)}</div>
+            ${renderTags(e.tags)}
           </div>`;
         });
       }
@@ -320,7 +429,7 @@
     }
 
     function renderTasks() {
-      let tasks = data.tasks;
+      let tasks = filterItems(data.tasks);
       if (taskFilter === 'pending') tasks = tasks.filter(t => !t.done);
       if (taskFilter === 'completed') tasks = tasks.filter(t => t.done);
       tasks = tasks.sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
@@ -346,7 +455,9 @@
                 <span class="reminder-dot ${t.done ? 'reminder-ok' : status.class}"></span>
                 <span class="card-title ${t.done ? 'task-done' : ''}">${escapeHtml(t.title)}</span>
               </div>
+              <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">${getCategoryName(t.category)}</div>
               <div class="card-meta">${formatDate(t.datetime)} • ${t.done ? 'Completed' : status.text}</div>
+              ${renderTags(t.tags)}
               ${t.desc ? `<div style="margin-top: 6px; color: #475569; font-size: 0.9rem;">${escapeHtml(t.desc)}</div>` : ''}
             </div>
             <div class="action-btns">
@@ -361,6 +472,7 @@
     }
 
     function renderEvents() {
+      let filteredEvents = filterItems(data.events);
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth();
       const firstDay = new Date(year, month, 1).getDay();
@@ -383,28 +495,28 @@
       const today = new Date();
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = new Date(year, month, day).toDateString();
-        const dayEvents = data.events.filter(e => new Date(e.datetime).toDateString() === dateStr);
+        const dayEvents = filteredEvents.filter(e => new Date(e.datetime).toDateString() === dateStr);
         const isToday = today.toDateString() === dateStr;
         html += `<div class="calendar-day ${isToday ? 'calendar-today' : ''}">
           <div class="calendar-day-number">${day}</div>
           <div style="margin-top: 4px;">`;
         dayEvents.forEach(e => {
-          html += `<div style="font-size: 0.7rem; background: #C8E6C9; color: #1B5E20; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden;" title="${escapeHtml(e.title)}">${escapeHtml(e.title)}</div>`;
+          html += `<div style="font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; background: ${getCategoryColor(e.category)}20; color: ${getCategoryColor(e.category)};" title="${escapeHtml(e.title)}">${escapeHtml(e.title)}</div>`;
         });
         html += `</div></div>`;
       }
       html += `</div>`;
 
       html += `<div class="section-title" style="margin-top: 24px;">Upcoming Events List</div>`;
-      const upcoming = data.events.sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
-      if (upcoming.length === 0) {
-        html += `<div class="card empty-state">No events scheduled.</div>`;
+      if (filteredEvents.length === 0) {
+        html += `<div class="card empty-state">No events found.</div>`;
       } else {
-        upcoming.forEach(e => {
+        filteredEvents.sort((a,b) => new Date(a.datetime) - new Date(b.datetime)).forEach(e => {
           html += `<div class="card">
             <div class="card-header">
               <div>
                 <div class="card-title">${escapeHtml(e.title)}</div>
+                <div style="font-size: 0.8rem; color: #999;">${getCategoryName(e.category)}</div>
                 <div class="card-meta">${formatDate(e.datetime)}</div>
               </div>
               <div class="action-btns">
@@ -412,6 +524,7 @@
                 <button class="btn btn-danger" style="padding: 4px 8px;" onclick="deleteItem('${e.id}', 'event')">🗑️</button>
               </div>
             </div>
+            ${renderTags(e.tags)}
             <div style="color: #475569; font-size: 0.9rem;">${escapeHtml(e.desc)}</div>
           </div>`;
         });
@@ -420,10 +533,10 @@
     }
 
     function renderNotes() {
-      const notes = data.notes.sort((a,b) => new Date(b.datetime) - new Date(a.datetime));
+      let notes = filterItems(data.notes).sort((a,b) => new Date(b.datetime || 0) - new Date(a.datetime || 0));
       let html = '';
       if (notes.length === 0) {
-        html += `<div class="card empty-state">No notes yet. Create your first note!</div>`;
+        html += `<div class="card empty-state">No notes found. Create your first note!</div>`;
         return html;
       }
       notes.forEach(n => {
@@ -435,8 +548,9 @@
               <button class="btn btn-danger" style="padding: 4px 8px;" onclick="deleteItem('${n.id}', 'note')">🗑️</button>
             </div>
           </div>
+          <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">${getCategoryName(n.category)}</div>
+          ${renderTags(n.tags)}
           <div class="note-preview">${escapeHtml(n.desc).replace(/\n/g, '<br>')}</div>
-          <div class="card-meta" style="margin-top: 8px;">${formatDate(n.datetime)}</div>
         </div>`;
       });
       return html;
@@ -459,19 +573,31 @@
     function setTaskFilter(filter) { taskFilter = filter; render(); }
     function changeMonth(delta) { currentMonth.setMonth(currentMonth.getMonth() + delta); render(); }
 
+    function updateFormFields() {
+      const type = document.getElementById('newType').value;
+      document.getElementById('priorityGroup').style.display = type === 'task' ? 'block' : 'none';
+    }
+
+    function updateCategorySelects() {
+      const options = '<option value="">No Category</option>' + 
+        data.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+      document.getElementById('newCategory').innerHTML = options;
+      document.getElementById('editCategory').innerHTML = options;
+      
+      const filterOptions = '<option value="">All Categories</option>' + 
+        data.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+      document.getElementById('categoryFilter').innerHTML = filterOptions;
+    }
+
     function openAddModal() {
       document.getElementById('newTitle').value = '';
       document.getElementById('newDesc').value = '';
       document.getElementById('newDateTime').value = new Date().toISOString().slice(0,16);
       document.getElementById('newPriority').value = 'medium';
+      document.getElementById('newTags').value = '';
+      document.getElementById('newCategory').value = '';
       updateFormFields();
       document.getElementById('addModal').style.display = 'flex';
-    }
-
-    function updateFormFields() {
-      const type = document.getElementById('newType').value;
-      document.getElementById('priorityGroup').style.display = type === 'task' ? 'block' : 'none';
-      document.getElementById('dateGroup').style.display = type === 'note' ? 'none' : 'block';
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -482,7 +608,15 @@
       const desc = document.getElementById('newDesc').value.trim();
       if (!title) { alert('Please enter a title'); return; }
 
-      const item = { id: generateId(), title, desc, datetime: document.getElementById('newDateTime').value || new Date().toISOString() };
+      const tags = document.getElementById('newTags').value.split(',').map(t => t.trim()).filter(t => t);
+      const item = { 
+        id: generateId(), 
+        title, 
+        desc, 
+        datetime: document.getElementById('newDateTime').value || new Date().toISOString(),
+        category: document.getElementById('newCategory').value,
+        tags: tags
+      };
       if (type === 'task') { item.priority = document.getElementById('newPriority').value; item.done = false; }
       data[type + 's'].push(item);
       saveData();
@@ -498,8 +632,9 @@
       document.getElementById('editTitle').value = item.title;
       document.getElementById('editDesc').value = item.desc;
       document.getElementById('editDateTime').value = item.datetime ? item.datetime.slice(0,16) : '';
+      document.getElementById('editCategory').value = item.category || '';
+      document.getElementById('editTags').value = (item.tags || []).join(', ');
       document.getElementById('editPriorityGroup').style.display = type === 'task' ? 'block' : 'none';
-      document.getElementById('editDateGroup').style.display = type === 'note' ? 'none' : 'block';
       if (type === 'task') document.getElementById('editPriority').value = item.priority;
       document.getElementById('editModal').style.display = 'flex';
     }
@@ -511,7 +646,9 @@
       if (!item) return;
       item.title = document.getElementById('editTitle').value.trim();
       item.desc = document.getElementById('editDesc').value.trim();
-      if (type !== 'note') item.datetime = document.getElementById('editDateTime').value;
+      item.datetime = document.getElementById('editDateTime').value;
+      item.category = document.getElementById('editCategory').value;
+      item.tags = document.getElementById('editTags').value.split(',').map(t => t.trim()).filter(t => t);
       if (type === 'task') item.priority = document.getElementById('editPriority').value;
       saveData();
       closeModal('editModal');
@@ -530,20 +667,68 @@
       if (task) { task.done = !task.done; saveData(); render(); }
     }
 
-    // Close modal when clicking outside
+    function openCategoriesModal() {
+      document.getElementById('newCategoryName').value = '';
+      selectedColor = '#2E7D32';
+      renderColorPicker();
+      renderCategoriesList();
+      document.getElementById('categoriesModal').style.display = 'flex';
+    }
+
+    function renderColorPicker() {
+      const html = COLORS.map(color => 
+        `<div class="color-option ${color === selectedColor ? 'selected' : ''}" style="background: ${color};" onclick="selectedColor='${color}'; renderColorPicker()"></div>`
+      ).join('');
+      document.getElementById('colorPicker').innerHTML = html;
+    }
+
+    function addCategory() {
+      const name = document.getElementById('newCategoryName').value.trim();
+      if (!name) { alert('Please enter a category name'); return; }
+      const existing = data.categories.find(c => c.name.toLowerCase() === name.toLowerCase());
+      if (existing) { alert('Category already exists'); return; }
+      
+      data.categories.push({ id: generateId(), name, color: selectedColor });
+      saveData();
+      document.getElementById('newCategoryName').value = '';
+      renderCategoriesList();
+    }
+
+    function renderCategoriesList() {
+      const html = data.categories.map(cat => `
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 30px; height: 30px; background: ${cat.color}; border-radius: 8px;"></div>
+            <span>${escapeHtml(cat.name)}</span>
+          </div>
+          <button class="btn btn-danger btn-small" onclick="deleteCategory('${cat.id}')">Delete</button>
+        </div>
+      `).join('');
+      document.getElementById('categoriesList').innerHTML = html || '<div class="empty-state">No categories yet</div>';
+    }
+
+    function deleteCategory(id) {
+      if (!confirm('Delete this category? Items will not be deleted.')) return;
+      data.categories = data.categories.filter(c => c.id !== id);
+      data.tasks.forEach(t => { if (t.category === id) t.category = ''; });
+      data.events.forEach(e => { if (e.category === id) e.category = ''; });
+      data.notes.forEach(n => { if (n.category === id) n.category = ''; });
+      saveData();
+      renderCategoriesList();
+    }
+
     document.addEventListener('click', function(e) {
       if (e.target.classList.contains('modal-overlay')) {
         e.target.style.display = 'none';
       }
     });
 
-    // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
-    // Initialize
     loadData();
+    updateCategorySelects();
     render();
   </script>
 </body>
