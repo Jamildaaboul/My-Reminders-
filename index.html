@@ -223,8 +223,8 @@
         { id: 'e2', title: 'Client Call - Acme Corp', desc: 'Quarterly business review', datetime: new Date(now.getTime() + 86400000 * 5).toISOString() }
       ];
       data.notes = [
-        { id: 'n1', title: 'Project Ideas 2026', desc: '1. AI-powered scheduling assistant\n2. Automated expense tracker\n3. Smart home energy dashboard\n\nNeed to research APIs and feasibility...', datetime: new Date(now.getTime() - 86400000).toISOString() },
-        { id: 'n2', title: 'Meeting Notes - Design Review', desc: 'Key decisions:\n- Dark mode as default\n- Mobile-first approach\n- Accessibility audit next sprint\n\nAction items assigned to Sarah and Mike.', datetime: new Date(now.getTime() - 172800000).toISOString() }
+        { id: 'n1', title: 'Project Ideas 2026', desc: '1. AI-powered scheduling assistant\n2. Automated expense tracker\n3. Smart home energy dashboard\n\nNeed to research APIs and feasibility.' },
+        { id: 'n2', title: 'Meeting Notes - Design Review', desc: 'Key decisions:\n- Dark mode as default\n- Mobile-first approach\n- Accessibility audit next sprint\n\nAction items assigned to Sarah.' }
       ];
       saveData();
     }
@@ -389,7 +389,7 @@
           <div class="calendar-day-number">${day}</div>
           <div style="margin-top: 4px;">`;
         dayEvents.forEach(e => {
-          html += `<div style="font-size: 0.7rem; background: #C8E6C9; color: #1B5E20; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" onclick="openEditModal('${e.id}', 'event')">${escapeHtml(e.title)}</div>`;
+          html += `<div style="font-size: 0.7rem; background: #C8E6C9; color: #1B5E20; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden;" title="${escapeHtml(e.title)}">${escapeHtml(e.title)}</div>`;
         });
         html += `</div></div>`;
       }
@@ -539,16 +539,7 @@
 
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('data:text/javascript;base64,' + btoa(`
-        const CACHE_NAME = 'remindme-v1';
-        const urlsToCache = ['./remindme.html'];
-        self.addEventListener('install', e => {
-          e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache)));
-        });
-        self.addEventListener('fetch', e => {
-          e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
-        });
-      `)).catch(() => {});
+      navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
     // Initialize
