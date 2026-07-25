@@ -40,6 +40,7 @@
     .badge-event { background: #E8F5E9; color: #1B5E20; }
     .badge-note { background: #f3e8ff; color: #7c3aed; }
     .badge-tag { padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; display: inline-block; margin-right: 4px; margin-bottom: 4px; }
+    .badge-recurring { background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; display: inline-block; margin-right: 4px; }
     .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: inherit; }
     .btn-primary { background: #2E7D32; color: white; }
     .btn-primary:hover { background: #1B5E20; }
@@ -95,12 +96,21 @@
     .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
     .color-option { width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
     .color-option.selected { border-color: #334155; }
+    .notification-badge { position: fixed; bottom: 20px; right: 20px; background: #2E7D32; color: white; padding: 16px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 300px; z-index: 1000; animation: slideIn 0.3s ease-out; }
+    @keyframes slideIn { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .toggle-switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: 0.3s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%; }
+    input:checked + .slider { background-color: #2E7D32; }
+    input:checked + .slider:before { transform: translateX(26px); }
     @media (max-width: 600px) {
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .calendar-grid { gap: 4px; }
       .calendar-day { min-height: 50px; padding: 4px; }
       .app-title { font-size: 1.25rem; }
       .search-input { min-width: 150px; }
+      .notification-badge { bottom: 10px; right: 10px; max-width: 280px; }
     }
   </style>
 </head>
@@ -109,6 +119,7 @@
     <div class="header-bar">
       <h1 class="app-title">🌲 RemindMe</h1>
       <div style="display: flex; gap: 8px;">
+        <button class="btn btn-ghost btn-small" onclick="openSettingsModal()">⚙️ Settings</button>
         <button class="btn btn-ghost btn-small" onclick="openCategoriesModal()">📁 Categories</button>
         <button class="btn btn-primary" onclick="openAddModal()">+ Add New</button>
       </div>
@@ -167,6 +178,26 @@
             <option value="low">Low</option>
           </select>
         </div>
+        <div class="form-group" id="recurringGroup">
+          <label class="form-label">Repeat</label>
+          <select class="form-select" id="newRecurrence">
+            <option value="none">No Repeat</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div class="form-group" id="notificationGroup">
+          <label class="form-label">Notify Me</label>
+          <select class="form-select" id="newNotification">
+            <option value="none">No Notification</option>
+            <option value="at-time">At Time</option>
+            <option value="5min">5 Minutes Before</option>
+            <option value="15min">15 Minutes Before</option>
+            <option value="1hour">1 Hour Before</option>
+            <option value="1day">1 Day Before</option>
+          </select>
+        </div>
         <div class="form-group">
           <label class="form-label">Category</label>
           <select class="form-select" id="newCategory">
@@ -213,6 +244,26 @@
             <option value="low">Low</option>
           </select>
         </div>
+        <div class="form-group" id="editRecurringGroup">
+          <label class="form-label">Repeat</label>
+          <select class="form-select" id="editRecurrence">
+            <option value="none">No Repeat</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div class="form-group" id="editNotificationGroup">
+          <label class="form-label">Notify Me</label>
+          <select class="form-select" id="editNotification">
+            <option value="none">No Notification</option>
+            <option value="at-time">At Time</option>
+            <option value="5min">5 Minutes Before</option>
+            <option value="15min">15 Minutes Before</option>
+            <option value="1hour">1 Hour Before</option>
+            <option value="1day">1 Day Before</option>
+          </select>
+        </div>
         <div class="form-group">
           <label class="form-label">Category</label>
           <select class="form-select" id="editCategory">
@@ -250,18 +301,47 @@
         <div id="categoriesList"></div>
       </div>
     </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay" style="display: none;">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Settings</div>
+          <button class="close-btn" onclick="closeModal('settingsModal')">&times;</button>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Enable Notifications</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="notificationsToggle" onchange="toggleNotifications()">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="section-title">Notification Status</div>
+        <div id="notificationStatus" style="padding: 12px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; margin-bottom: 16px;"></div>
+
+        <div class="section-title">About</div>
+        <div style="font-size: 0.9rem; color: #64748b;">
+          <p><strong>RemindMe v2.0</strong></p>
+          <p>🌲 Your personal task, event & notes manager</p>
+          <p style="margin-top: 8px;">Features: Categories, Tags, Search, Recurring Tasks, Browser Notifications</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
     const COLORS = ['#2E7D32', '#1e88e5', '#f57c00', '#c2185b', '#6a1b9a', '#00796b', '#d32f2f', '#7b1fa2'];
-    let data = { tasks: [], events: [], notes: [], categories: [] };
+    let data = { tasks: [], events: [], notes: [], categories: [], settings: { notificationsEnabled: false } };
     let currentTab = 'dashboard';
     let taskFilter = 'all';
     let currentMonth = new Date();
     let searchQuery = '';
     let selectedCategory = '';
     let selectedColor = '#2E7D32';
-    const STORAGE_KEY = 'remindme_data_v2';
+    const STORAGE_KEY = 'remindme_data_v3';
+    let notificationCheckInterval;
 
     function loadData() {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -269,6 +349,7 @@
         try {
           data = JSON.parse(saved);
           if (!data.categories) data.categories = [];
+          if (!data.settings) data.settings = { notificationsEnabled: false };
           return;
         } catch(e) {}
       }
@@ -282,19 +363,20 @@
 
     function initializeData() {
       const now = new Date();
+      data.settings = { notificationsEnabled: false };
       data.categories = [
         { id: 'c1', name: 'Work', color: '#1e88e5' },
         { id: 'c2', name: 'Personal', color: '#2E7D32' },
         { id: 'c3', name: 'Health', color: '#d32f2f' }
       ];
       data.tasks = [
-        { id: 't1', title: 'Review quarterly report', desc: 'Go through Q3 financials and prepare summary', datetime: new Date(now.getTime() + 86400000).toISOString(), priority: 'high', done: false, category: 'c1', tags: ['work', 'urgent'] },
-        { id: 't2', title: 'Team standup', desc: 'Daily sync with engineering team', datetime: new Date(now.getTime() + 3600000).toISOString(), priority: 'medium', done: false, category: 'c1', tags: ['work'] },
-        { id: 't3', title: 'Update documentation', desc: 'Refresh API docs with new endpoints', datetime: new Date(now.getTime() + 172800000).toISOString(), priority: 'low', done: true, category: 'c1', tags: ['documentation'] }
+        { id: 't1', title: 'Review quarterly report', desc: 'Go through Q3 financials and prepare summary', datetime: new Date(now.getTime() + 86400000).toISOString(), priority: 'high', done: false, category: 'c1', tags: ['work', 'urgent'], recurrence: 'none', notification: 'none' },
+        { id: 't2', title: 'Team standup', desc: 'Daily sync with engineering team', datetime: new Date(now.getTime() + 3600000).toISOString(), priority: 'medium', done: false, category: 'c1', tags: ['work'], recurrence: 'daily', notification: '15min' },
+        { id: 't3', title: 'Update documentation', desc: 'Refresh API docs with new endpoints', datetime: new Date(now.getTime() + 172800000).toISOString(), priority: 'low', done: true, category: 'c1', tags: ['documentation'], recurrence: 'weekly', notification: 'none' }
       ];
       data.events = [
-        { id: 'e1', title: 'Product Launch Meeting', desc: 'Discuss go-to-market strategy', datetime: new Date(now.getTime() + 86400000 * 2).toISOString(), category: 'c1', tags: ['meeting'] },
-        { id: 'e2', title: 'Doctor Appointment', desc: 'Annual checkup', datetime: new Date(now.getTime() + 86400000 * 5).toISOString(), category: 'c3', tags: ['health'] }
+        { id: 'e1', title: 'Product Launch Meeting', desc: 'Discuss go-to-market strategy', datetime: new Date(now.getTime() + 86400000 * 2).toISOString(), category: 'c1', tags: ['meeting'], recurrence: 'none', notification: '1hour' },
+        { id: 'e2', title: 'Doctor Appointment', desc: 'Annual checkup', datetime: new Date(now.getTime() + 86400000 * 5).toISOString(), category: 'c3', tags: ['health'], recurrence: 'none', notification: '1day' }
       ];
       data.notes = [
         { id: 'n1', title: 'Project Ideas 2026', desc: '1. AI-powered scheduling\n2. Expense tracker\n3. Smart dashboard', category: 'c1', tags: ['ideas'] },
@@ -372,6 +454,12 @@
       return tags.map(tag => `<span class="badge-tag" style="background: #f3e8ff; color: #7c3aed;">${escapeHtml(tag)}</span>`).join('');
     }
 
+    function renderRecurrence(recurrence) {
+      if (!recurrence || recurrence === 'none') return '';
+      const icons = { daily: '📅', weekly: '📆', monthly: '📊' };
+      return `<span class="badge-recurring">${icons[recurrence] || '📅'} ${recurrence}</span>`;
+    }
+
     function renderDashboard() {
       const upcomingTasks = data.tasks.filter(t => !t.done).sort((a,b) => new Date(a.datetime) - new Date(b.datetime)).slice(0, 3);
       const upcomingEvents = data.events.sort((a,b) => new Date(a.datetime) - new Date(b.datetime)).slice(0, 3);
@@ -379,12 +467,13 @@
       const totalPending = data.tasks.filter(t => !t.done).length;
       const totalEvents = data.events.length;
       const totalNotes = data.notes.length;
+      const recurringCount = data.tasks.filter(t => t.recurrence && t.recurrence !== 'none').length;
 
       let html = `<div class="stats-grid">
         <div class="stat-card"><div class="stat-value">${totalPending}</div><div class="stat-label">Pending Tasks</div></div>
         <div class="stat-card"><div class="stat-value">${totalEvents}</div><div class="stat-label">Upcoming Events</div></div>
         <div class="stat-card"><div class="stat-value">${totalNotes}</div><div class="stat-label">Notes</div></div>
-        <div class="stat-card"><div class="stat-value">${data.tasks.filter(t => t.done).length}</div><div class="stat-label">Completed</div></div>
+        <div class="stat-card"><div class="stat-value">${recurringCount}</div><div class="stat-label">Recurring</div></div>
       </div>`;
 
       html += `<div class="section-title">🔥 Priority Tasks</div>`;
@@ -403,6 +492,7 @@
             </div>
             <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">${getCategoryName(t.category)}</div>
             <div class="card-meta">${formatDate(t.datetime)} • ${status.text}</div>
+            ${renderRecurrence(t.recurrence)}
             ${renderTags(t.tags)}
           </div>`;
         });
@@ -420,6 +510,7 @@
             </div>
             <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">${getCategoryName(e.category)}</div>
             <div class="card-meta">${formatDate(e.datetime)}</div>
+            ${renderRecurrence(e.recurrence)}
             ${renderTags(e.tags)}
           </div>`;
         });
@@ -457,6 +548,7 @@
               </div>
               <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">${getCategoryName(t.category)}</div>
               <div class="card-meta">${formatDate(t.datetime)} • ${t.done ? 'Completed' : status.text}</div>
+              ${renderRecurrence(t.recurrence)}
               ${renderTags(t.tags)}
               ${t.desc ? `<div style="margin-top: 6px; color: #475569; font-size: 0.9rem;">${escapeHtml(t.desc)}</div>` : ''}
             </div>
@@ -524,6 +616,7 @@
                 <button class="btn btn-danger" style="padding: 4px 8px;" onclick="deleteItem('${e.id}', 'event')">🗑️</button>
               </div>
             </div>
+            ${renderRecurrence(e.recurrence)}
             ${renderTags(e.tags)}
             <div style="color: #475569; font-size: 0.9rem;">${escapeHtml(e.desc)}</div>
           </div>`;
@@ -576,6 +669,8 @@
     function updateFormFields() {
       const type = document.getElementById('newType').value;
       document.getElementById('priorityGroup').style.display = type === 'task' ? 'block' : 'none';
+      document.getElementById('recurringGroup').style.display = type === 'task' ? 'block' : 'none';
+      document.getElementById('notificationGroup').style.display = type !== 'note' ? 'block' : 'none';
     }
 
     function updateCategorySelects() {
@@ -596,6 +691,8 @@
       document.getElementById('newPriority').value = 'medium';
       document.getElementById('newTags').value = '';
       document.getElementById('newCategory').value = '';
+      document.getElementById('newRecurrence').value = 'none';
+      document.getElementById('newNotification').value = 'none';
       updateFormFields();
       document.getElementById('addModal').style.display = 'flex';
     }
@@ -615,7 +712,9 @@
         desc, 
         datetime: document.getElementById('newDateTime').value || new Date().toISOString(),
         category: document.getElementById('newCategory').value,
-        tags: tags
+        tags: tags,
+        recurrence: document.getElementById('newRecurrence').value || 'none',
+        notification: document.getElementById('newNotification').value || 'none'
       };
       if (type === 'task') { item.priority = document.getElementById('newPriority').value; item.done = false; }
       data[type + 's'].push(item);
@@ -634,7 +733,11 @@
       document.getElementById('editDateTime').value = item.datetime ? item.datetime.slice(0,16) : '';
       document.getElementById('editCategory').value = item.category || '';
       document.getElementById('editTags').value = (item.tags || []).join(', ');
+      document.getElementById('editRecurrence').value = item.recurrence || 'none';
+      document.getElementById('editNotification').value = item.notification || 'none';
       document.getElementById('editPriorityGroup').style.display = type === 'task' ? 'block' : 'none';
+      document.getElementById('editRecurringGroup').style.display = type === 'task' ? 'block' : 'none';
+      document.getElementById('editNotificationGroup').style.display = type !== 'note' ? 'block' : 'none';
       if (type === 'task') document.getElementById('editPriority').value = item.priority;
       document.getElementById('editModal').style.display = 'flex';
     }
@@ -649,6 +752,8 @@
       item.datetime = document.getElementById('editDateTime').value;
       item.category = document.getElementById('editCategory').value;
       item.tags = document.getElementById('editTags').value.split(',').map(t => t.trim()).filter(t => t);
+      item.recurrence = document.getElementById('editRecurrence').value;
+      item.notification = document.getElementById('editNotification').value;
       if (type === 'task') item.priority = document.getElementById('editPriority').value;
       saveData();
       closeModal('editModal');
@@ -717,6 +822,110 @@
       renderCategoriesList();
     }
 
+    function openSettingsModal() {
+      document.getElementById('notificationsToggle').checked = data.settings.notificationsEnabled;
+      updateNotificationStatus();
+      document.getElementById('settingsModal').style.display = 'flex';
+    }
+
+    function toggleNotifications() {
+      data.settings.notificationsEnabled = document.getElementById('notificationsToggle').checked;
+      saveData();
+      if (data.settings.notificationsEnabled) {
+        requestNotificationPermission();
+      } else {
+        clearInterval(notificationCheckInterval);
+      }
+      updateNotificationStatus();
+    }
+
+    function updateNotificationStatus() {
+      const status = document.getElementById('notificationStatus');
+      if (data.settings.notificationsEnabled) {
+        status.innerHTML = '✅ Notifications are <strong>enabled</strong><br><small>You will receive alerts for upcoming tasks and events</small>';
+        status.style.background = '#dbeafe';
+        status.style.color = '#0c4a6e';
+        startNotificationCheck();
+      } else {
+        status.innerHTML = '❌ Notifications are <strong>disabled</strong><br><small>Enable to receive alerts</small>';
+        status.style.background = '#fee2e2';
+        status.style.color = '#7f1d1d';
+        clearInterval(notificationCheckInterval);
+      }
+    }
+
+    async function requestNotificationPermission() {
+      if (!('Notification' in window)) {
+        alert('Your browser does not support notifications');
+        return;
+      }
+      if (Notification.permission === 'granted') {
+        return;
+      }
+      if (Notification.permission !== 'denied') {
+        await Notification.requestPermission();
+      }
+    }
+
+    function startNotificationCheck() {
+      if (notificationCheckInterval) clearInterval(notificationCheckInterval);
+      notificationCheckInterval = setInterval(checkAndNotify, 60000); // Check every minute
+      checkAndNotify(); // Check immediately
+    }
+
+    function getNotificationTime(item) {
+      const itemTime = new Date(item.datetime);
+      const notificationTime = new Date(itemTime);
+
+      if (item.notification === 'at-time') {
+        return itemTime;
+      } else if (item.notification === '5min') {
+        notificationTime.setMinutes(notificationTime.getMinutes() - 5);
+      } else if (item.notification === '15min') {
+        notificationTime.setMinutes(notificationTime.getMinutes() - 15);
+      } else if (item.notification === '1hour') {
+        notificationTime.setHours(notificationTime.getHours() - 1);
+      } else if (item.notification === '1day') {
+        notificationTime.setDate(notificationTime.getDate() - 1);
+      }
+      return notificationTime;
+    }
+
+    function checkAndNotify() {
+      if (!data.settings.notificationsEnabled || Notification.permission !== 'granted') return;
+
+      const now = new Date();
+      const upcomingWindow = 5 * 60 * 1000; // 5 minutes window
+
+      [...data.tasks, ...data.events].forEach(item => {
+        if (item.notification === 'none') return;
+        if (item.done) return; // Skip completed tasks
+
+        const notificationTime = getNotificationTime(item);
+        const timeDiff = notificationTime - now;
+
+        if (timeDiff >= 0 && timeDiff <= upcomingWindow && !item.notified) {
+          new Notification('RemindMe Alert! 🌲', {
+            body: item.title,
+            icon: 'icon-192.png',
+            tag: item.id,
+            requireInteraction: false
+          });
+          item.notified = true;
+          saveData();
+          showNotificationBadge(item.title);
+        }
+      });
+    }
+
+    function showNotificationBadge(title) {
+      const badge = document.createElement('div');
+      badge.className = 'notification-badge';
+      badge.innerHTML = `✅ ${title}`;
+      document.body.appendChild(badge);
+      setTimeout(() => badge.remove(), 4000);
+    }
+
     document.addEventListener('click', function(e) {
       if (e.target.classList.contains('modal-overlay')) {
         e.target.style.display = 'none';
@@ -730,6 +939,9 @@
     loadData();
     updateCategorySelects();
     render();
+    if (data.settings.notificationsEnabled) {
+      startNotificationCheck();
+    }
   </script>
 </body>
 </html>
