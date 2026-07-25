@@ -10,6 +10,9 @@
   <link rel="manifest" href="manifest.json">
   <title>RemindMe - Tasks, Events & Notes</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -25,6 +28,22 @@
       background: #f8fafc;
       min-height: 100vh;
     }
+    .auth-container {
+      max-width: 400px;
+      margin: 100px auto;
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .auth-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .auth-form { display: flex; flex-direction: column; gap: 16px; }
     .tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; overflow-x: auto; }
     .tab { padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; color: #64748b; transition: all 0.2s; border: none; background: transparent; white-space: nowrap; }
     .tab.active { background: #2E7D32; color: white; }
@@ -41,6 +60,7 @@
     .badge-note { background: #f3e8ff; color: #7c3aed; }
     .badge-tag { padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; display: inline-block; margin-right: 4px; margin-bottom: 4px; }
     .badge-recurring { background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; display: inline-block; margin-right: 4px; }
+    .badge-synced { background: #d1fae5; color: #059669; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; }
     .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: inherit; }
     .btn-primary { background: #2E7D32; color: white; }
     .btn-primary:hover { background: #1B5E20; }
@@ -81,8 +101,6 @@
     .calendar-day { padding: 8px; border-radius: 8px; cursor: pointer; min-height: 60px; border: 1px solid #e2e8f0; background: white; position: relative; }
     .calendar-day:hover { background: #f1f5f9; }
     .calendar-day-number { font-weight: 600; color: #334155; }
-    .calendar-event-dot { width: 6px; height: 6px; border-radius: 50%; background: #2E7D32; display: inline-block; margin: 2px; }
-    .calendar-today { border-color: #2E7D32; background: #E8F5E9; }
     .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
     .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-size: 0.85rem; font-weight: 500; font-family: inherit; }
     .filter-btn.active { background: #2E7D32; color: white; border-color: #2E7D32; }
@@ -90,9 +108,10 @@
     .search-input { flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; }
     .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
     .app-title { margin: 0; color: #1e293b; font-size: 1.5rem; }
-    .tag-input { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
-    .tag-chip { background: #e2e8f0; color: #334155; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; }
-    .tag-chip button { background: none; border: none; cursor: pointer; color: #64748b; font-weight: bold; }
+    .sync-status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; padding: 4px 12px; background: #f1f5f9; border-radius: 20px; }
+    .sync-indicator { width: 8px; height: 8px; border-radius: 50%; background: #64748b; }
+    .sync-indicator.synced { background: #10b981; animation: none; }
+    .sync-indicator.syncing { background: #f59e0b; animation: pulse 1s infinite; }
     .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
     .color-option { width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
     .color-option.selected { border-color: #334155; }
@@ -104,21 +123,69 @@
     .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%; }
     input:checked + .slider { background-color: #2E7D32; }
     input:checked + .slider:before { transform: translateX(26px); }
+    .auth-link { color: #2E7D32; cursor: pointer; text-decoration: underline; }
+    .error-message { color: #dc2626; background: #fee2e2; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+    .success-message { color: #059669; background: #d1fae5; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+    .export-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
     @media (max-width: 600px) {
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .calendar-grid { gap: 4px; }
-      .calendar-day { min-height: 50px; padding: 4px; }
       .app-title { font-size: 1.25rem; }
       .search-input { min-width: 150px; }
-      .notification-badge { bottom: 10px; right: 10px; max-width: 280px; }
+      .header-bar { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
-  <div id="app">
+  <div id="authContainer" class="auth-container" style="display: none;">
+    <div class="auth-title">🌲 RemindMe</div>
+    <div id="authMessage"></div>
+    
+    <!-- Login Form -->
+    <div id="loginForm">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="loginEmail" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-input" id="loginPassword" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary" onclick="handleLogin()" style="width: 100%;">Sign In</button>
+      <div style="text-align: center; margin-top: 16px; font-size: 0.9rem;">
+        Don't have an account? <span class="auth-link" onclick="switchToSignup()">Sign up</span>
+      </div>
+    </div>
+
+    <!-- Signup Form -->
+    <div id="signupForm" style="display: none;">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="signupEmail" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-input" id="signupPassword" placeholder="••••••••">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <input type="password" class="form-input" id="signupConfirm" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary" onclick="handleSignup()" style="width: 100%;">Create Account</button>
+      <div style="text-align: center; margin-top: 16px; font-size: 0.9rem;">
+        Already have an account? <span class="auth-link" onclick="switchToLogin()">Sign in</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="app" style="display: none;">
     <div class="header-bar">
       <h1 class="app-title">🌲 RemindMe</h1>
-      <div style="display: flex; gap: 8px;">
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <div class="sync-status">
+          <div class="sync-indicator" id="syncIndicator"></div>
+          <span id="syncText">Offline</span>
+        </div>
         <button class="btn btn-ghost btn-small" onclick="openSettingsModal()">⚙️ Settings</button>
         <button class="btn btn-ghost btn-small" onclick="openCategoriesModal()">📁 Categories</button>
         <button class="btn btn-primary" onclick="openAddModal()">+ Add New</button>
@@ -318,20 +385,49 @@
           </label>
         </div>
 
+        <div class="section-title">Data & Backup</div>
+        <div class="export-buttons">
+          <button class="btn btn-ghost" onclick="exportDataAsJSON()" style="flex: 1;">📥 Export JSON</button>
+          <button class="btn btn-ghost" onclick="importDataFromJSON()" style="flex: 1;">📤 Import JSON</button>
+          <button class="btn btn-ghost" onclick="exportToCalendar()" style="flex: 1;">📆 Export iCal</button>
+        </div>
+
         <div class="section-title">Notification Status</div>
         <div id="notificationStatus" style="padding: 12px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; margin-bottom: 16px;"></div>
 
+        <div class="section-title">Cloud Sync</div>
+        <div id="syncStatus" style="padding: 12px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; margin-bottom: 16px;"></div>
+
+        <div class="section-title">Account</div>
+        <button class="btn btn-danger" onclick="handleLogout()" style="width: 100%;">Sign Out</button>
+
         <div class="section-title">About</div>
         <div style="font-size: 0.9rem; color: #64748b;">
-          <p><strong>RemindMe v2.0</strong></p>
+          <p><strong>RemindMe v3.0</strong></p>
           <p>🌲 Your personal task, event & notes manager</p>
-          <p style="margin-top: 8px;">Features: Categories, Tags, Search, Recurring Tasks, Browser Notifications</p>
+          <p style="margin-top: 8px;">Features: Categories, Tags, Search, Recurring Tasks, Notifications, Cloud Sync, Calendar Export</p>
         </div>
       </div>
     </div>
+
+    <input type="file" id="importInput" style="display: none;" accept=".json" onchange="handleImportFile()">
   </div>
 
   <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyABCHjpCWeb0kUSQoEmoPTcTXE2YMykVw",
+      projectId: "remindme-86dc5",
+      storageBucket: "remindme-86dc5.firebasestorage.app",
+      messagingSenderId: "580543193956",
+      appId: "1:580543193956:web:64573f8352642b14935071"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
     const COLORS = ['#2E7D32', '#1e88e5', '#f57c00', '#c2185b', '#6a1b9a', '#00796b', '#d32f2f', '#7b1fa2'];
     let data = { tasks: [], events: [], notes: [], categories: [], settings: { notificationsEnabled: false } };
     let currentTab = 'dashboard';
@@ -340,25 +436,149 @@
     let searchQuery = '';
     let selectedCategory = '';
     let selectedColor = '#2E7D32';
-    const STORAGE_KEY = 'remindme_data_v3';
+    let currentUser = null;
     let notificationCheckInterval;
+    let isSyncing = false;
+    const LOCAL_STORAGE_KEY = 'remindme_local_v3';
 
-    function loadData() {
-      const saved = localStorage.getItem(STORAGE_KEY);
+    // Auth State Management
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        currentUser = user;
+        document.getElementById('authContainer').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        await loadDataFromFirebase();
+        updateSyncStatus();
+      } else {
+        currentUser = null;
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('authContainer').style.display = 'flex';
+        clearLocalData();
+      }
+    });
+
+    function switchToSignup() {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('signupForm').style.display = 'block';
+    }
+
+    function switchToLogin() {
+      document.getElementById('signupForm').style.display = 'none';
+      document.getElementById('loginForm').style.display = 'block';
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const msgDiv = document.getElementById('authMessage');
+
+      if (!email || !password) {
+        msgDiv.innerHTML = '<div class="error-message">Please fill in all fields</div>';
+        return;
+      }
+
+      try {
+        msgDiv.innerHTML = '<div class="success-message">Signing in...</div>';
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (error) {
+        msgDiv.innerHTML = `<div class="error-message">❌ ${error.message}</div>`;
+      }
+    }
+
+    async function handleSignup() {
+      const email = document.getElementById('signupEmail').value.trim();
+      const password = document.getElementById('signupPassword').value;
+      const confirm = document.getElementById('signupConfirm').value;
+      const msgDiv = document.getElementById('authMessage');
+
+      if (!email || !password || !confirm) {
+        msgDiv.innerHTML = '<div class="error-message">Please fill in all fields</div>';
+        return;
+      }
+
+      if (password !== confirm) {
+        msgDiv.innerHTML = '<div class="error-message">Passwords do not match</div>';
+        return;
+      }
+
+      if (password.length < 6) {
+        msgDiv.innerHTML = '<div class="error-message">Password must be at least 6 characters</div>';
+        return;
+      }
+
+      try {
+        msgDiv.innerHTML = '<div class="success-message">Creating account...</div>';
+        await auth.createUserWithEmailAndPassword(email, password);
+      } catch (error) {
+        msgDiv.innerHTML = `<div class="error-message">❌ ${error.message}</div>`;
+      }
+    }
+
+    function handleLogout() {
+      if (confirm('Are you sure you want to sign out?')) {
+        auth.signOut();
+      }
+    }
+
+    async function loadDataFromFirebase() {
+      if (!currentUser) return;
+      try {
+        updateSyncIndicator('syncing');
+        const doc = await db.collection('users').doc(currentUser.uid).get();
+        if (doc.exists) {
+          data = doc.data();
+        } else {
+          initializeData();
+          await saveDataToFirebase();
+        }
+        updateSyncIndicator('synced');
+        render();
+        updateCategorySelects();
+      } catch (error) {
+        console.error('Error loading from Firebase:', error);
+        updateSyncIndicator('offline');
+        loadLocalData();
+      }
+    }
+
+    async function saveDataToFirebase() {
+      if (!currentUser) {
+        saveLocalData();
+        return;
+      }
+      try {
+        updateSyncIndicator('syncing');
+        await db.collection('users').doc(currentUser.uid).set(data);
+        saveLocalData();
+        updateSyncIndicator('synced');
+      } catch (error) {
+        console.error('Error saving to Firebase:', error);
+        updateSyncIndicator('offline');
+        saveLocalData();
+      }
+    }
+
+    function saveLocalData() {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function loadLocalData() {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         try {
           data = JSON.parse(saved);
           if (!data.categories) data.categories = [];
           if (!data.settings) data.settings = { notificationsEnabled: false };
-          return;
-        } catch(e) {}
+        } catch (e) {
+          initializeData();
+        }
+      } else {
+        initializeData();
       }
-      initializeData();
     }
 
-    function saveData() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      updateCategorySelects();
+    function clearLocalData() {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
     }
 
     function initializeData() {
@@ -382,7 +602,35 @@
         { id: 'n1', title: 'Project Ideas 2026', desc: '1. AI-powered scheduling\n2. Expense tracker\n3. Smart dashboard', category: 'c1', tags: ['ideas'] },
         { id: 'n2', title: 'Design Review Notes', desc: 'Dark mode as default\nMobile-first approach', category: 'c1', tags: ['design'] }
       ];
-      saveData();
+    }
+
+    function updateSyncIndicator(status) {
+      const indicator = document.getElementById('syncIndicator');
+      const text = document.getElementById('syncText');
+      
+      if (status === 'synced') {
+        indicator.className = 'sync-indicator synced';
+        text.textContent = '✓ Synced';
+      } else if (status === 'syncing') {
+        indicator.className = 'sync-indicator syncing';
+        text.textContent = '⟳ Syncing...';
+      } else {
+        indicator.className = 'sync-indicator';
+        text.textContent = '⊘ Offline';
+      }
+    }
+
+    function updateSyncStatus() {
+      const status = document.getElementById('syncStatus');
+      if (currentUser) {
+        status.innerHTML = `✅ <strong>Cloud Sync Active</strong><br><small>Signed in as: ${currentUser.email}</small>`;
+        status.style.background = '#dbeafe';
+        status.style.color = '#0c4a6e';
+      } else {
+        status.innerHTML = '❌ <strong>Offline Mode</strong><br><small>Using local storage only</small>';
+        status.style.background = '#fee2e2';
+        status.style.color = '#7f1d1d';
+      }
     }
 
     function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
@@ -699,7 +947,7 @@
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    function saveNewItem() {
+    async function saveNewItem() {
       const type = document.getElementById('newType').value;
       const title = document.getElementById('newTitle').value.trim();
       const desc = document.getElementById('newDesc').value.trim();
@@ -718,7 +966,7 @@
       };
       if (type === 'task') { item.priority = document.getElementById('newPriority').value; item.done = false; }
       data[type + 's'].push(item);
-      saveData();
+      await saveDataToFirebase();
       closeModal('addModal');
       render();
     }
@@ -742,7 +990,7 @@
       document.getElementById('editModal').style.display = 'flex';
     }
 
-    function saveEditItem() {
+    async function saveEditItem() {
       const id = document.getElementById('editId').value;
       const type = document.getElementById('editType').value;
       const item = data[type + 's'].find(x => x.id === id);
@@ -755,21 +1003,21 @@
       item.recurrence = document.getElementById('editRecurrence').value;
       item.notification = document.getElementById('editNotification').value;
       if (type === 'task') item.priority = document.getElementById('editPriority').value;
-      saveData();
+      await saveDataToFirebase();
       closeModal('editModal');
       render();
     }
 
-    function deleteItem(id, type) {
+    async function deleteItem(id, type) {
       if (!confirm('Are you sure you want to delete this item?')) return;
       data[type + 's'] = data[type + 's'].filter(x => x.id !== id);
-      saveData();
+      await saveDataToFirebase();
       render();
     }
 
-    function toggleTask(id) {
+    async function toggleTask(id) {
       const task = data.tasks.find(t => t.id === id);
-      if (task) { task.done = !task.done; saveData(); render(); }
+      if (task) { task.done = !task.done; await saveDataToFirebase(); render(); }
     }
 
     function openCategoriesModal() {
@@ -787,16 +1035,17 @@
       document.getElementById('colorPicker').innerHTML = html;
     }
 
-    function addCategory() {
+    async function addCategory() {
       const name = document.getElementById('newCategoryName').value.trim();
       if (!name) { alert('Please enter a category name'); return; }
       const existing = data.categories.find(c => c.name.toLowerCase() === name.toLowerCase());
       if (existing) { alert('Category already exists'); return; }
       
       data.categories.push({ id: generateId(), name, color: selectedColor });
-      saveData();
+      await saveDataToFirebase();
       document.getElementById('newCategoryName').value = '';
       renderCategoriesList();
+      updateCategorySelects();
     }
 
     function renderCategoriesList() {
@@ -812,25 +1061,27 @@
       document.getElementById('categoriesList').innerHTML = html || '<div class="empty-state">No categories yet</div>';
     }
 
-    function deleteCategory(id) {
+    async function deleteCategory(id) {
       if (!confirm('Delete this category? Items will not be deleted.')) return;
       data.categories = data.categories.filter(c => c.id !== id);
       data.tasks.forEach(t => { if (t.category === id) t.category = ''; });
       data.events.forEach(e => { if (e.category === id) e.category = ''; });
       data.notes.forEach(n => { if (n.category === id) n.category = ''; });
-      saveData();
+      await saveDataToFirebase();
       renderCategoriesList();
+      updateCategorySelects();
     }
 
     function openSettingsModal() {
       document.getElementById('notificationsToggle').checked = data.settings.notificationsEnabled;
       updateNotificationStatus();
+      updateSyncStatus();
       document.getElementById('settingsModal').style.display = 'flex';
     }
 
     function toggleNotifications() {
       data.settings.notificationsEnabled = document.getElementById('notificationsToggle').checked;
-      saveData();
+      saveDataToFirebase();
       if (data.settings.notificationsEnabled) {
         requestNotificationPermission();
       } else {
@@ -869,8 +1120,35 @@
 
     function startNotificationCheck() {
       if (notificationCheckInterval) clearInterval(notificationCheckInterval);
-      notificationCheckInterval = setInterval(checkAndNotify, 60000); // Check every minute
-      checkAndNotify(); // Check immediately
+      notificationCheckInterval = setInterval(checkAndNotify, 60000);
+      checkAndNotify();
+    }
+
+    function checkAndNotify() {
+      if (!data.settings.notificationsEnabled || Notification.permission !== 'granted') return;
+
+      const now = new Date();
+      const upcomingWindow = 5 * 60 * 1000;
+
+      [...data.tasks, ...data.events].forEach(item => {
+        if (item.notification === 'none') return;
+        if (item.done) return;
+
+        const notificationTime = getNotificationTime(item);
+        const timeDiff = notificationTime - now;
+
+        if (timeDiff >= 0 && timeDiff <= upcomingWindow && !item.notified) {
+          new Notification('RemindMe Alert! 🌲', {
+            body: item.title,
+            icon: 'icon-192.png',
+            tag: item.id,
+            requireInteraction: false
+          });
+          item.notified = true;
+          saveDataToFirebase();
+          showNotificationBadge(item.title);
+        }
+      });
     }
 
     function getNotificationTime(item) {
@@ -891,39 +1169,88 @@
       return notificationTime;
     }
 
-    function checkAndNotify() {
-      if (!data.settings.notificationsEnabled || Notification.permission !== 'granted') return;
-
-      const now = new Date();
-      const upcomingWindow = 5 * 60 * 1000; // 5 minutes window
-
-      [...data.tasks, ...data.events].forEach(item => {
-        if (item.notification === 'none') return;
-        if (item.done) return; // Skip completed tasks
-
-        const notificationTime = getNotificationTime(item);
-        const timeDiff = notificationTime - now;
-
-        if (timeDiff >= 0 && timeDiff <= upcomingWindow && !item.notified) {
-          new Notification('RemindMe Alert! 🌲', {
-            body: item.title,
-            icon: 'icon-192.png',
-            tag: item.id,
-            requireInteraction: false
-          });
-          item.notified = true;
-          saveData();
-          showNotificationBadge(item.title);
-        }
-      });
-    }
-
     function showNotificationBadge(title) {
       const badge = document.createElement('div');
       badge.className = 'notification-badge';
       badge.innerHTML = `✅ ${title}`;
       document.body.appendChild(badge);
       setTimeout(() => badge.remove(), 4000);
+    }
+
+    function exportDataAsJSON() {
+      const dataStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `remindme-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importDataFromJSON() {
+      document.getElementById('importInput').click();
+    }
+
+    async function handleImportFile() {
+      const file = document.getElementById('importInput').files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (confirm('This will replace all your current data. Are you sure?')) {
+            data = imported;
+            await saveDataToFirebase();
+            render();
+            updateCategorySelects();
+            alert('✅ Data imported successfully!');
+          }
+        } catch (err) {
+          alert('❌ Error importing file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      document.getElementById('importInput').value = '';
+    }
+
+    function exportToCalendar() {
+      let ical = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//RemindMe//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+`;
+
+      [...data.tasks, ...data.events].forEach(item => {
+        const startTime = new Date(item.datetime).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        const endTime = new Date(new Date(item.datetime).getTime() + 3600000).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        
+        ical += `BEGIN:VEVENT
+UID:${item.id}@remindme.app
+DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
+DTSTART:${startTime}
+DTEND:${endTime}
+SUMMARY:${item.title}
+DESCRIPTION:${item.desc || ''}
+`;
+        if (item.recurrence && item.recurrence !== 'none') {
+          const rruleMap = { daily: 'DAILY', weekly: 'WEEKLY', monthly: 'MONTHLY' };
+          ical += `RRULE:FREQ=${rruleMap[item.recurrence]}\n`;
+        }
+        ical += `END:VEVENT\n`;
+      });
+
+      ical += `END:VCALENDAR`;
+
+      const blob = new Blob([ical], { type: 'text/calendar' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `remindme-calendar-${new Date().toISOString().slice(0,10)}.ics`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     document.addEventListener('click', function(e) {
@@ -936,12 +1263,7 @@
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
-    loadData();
-    updateCategorySelects();
-    render();
-    if (data.settings.notificationsEnabled) {
-      startNotificationCheck();
-    }
+    loadLocalData();
   </script>
 </body>
 </html>
