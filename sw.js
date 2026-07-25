@@ -1,5 +1,5 @@
 const CACHE_NAME = 'remindme-v1';
-const urlsToCache = ['./remindme.html'];
+const urlsToCache = ['./index.html'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache)));
