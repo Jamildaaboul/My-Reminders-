@@ -137,6 +137,11 @@
     .install-banner-actions { display: flex; gap: 8px; }
     .install-btn { background: white; color: #2E7D32; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; }
     .install-dismiss-btn { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.6); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+    .uncategorized-pill { background: transparent !important; border: 1px dashed #94a3b8 !important; color: #64748b !important; }
+    .recurring-freq-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+    .freq-daily { background: #dbeafe; color: #1e40af; }
+    .freq-weekly { background: #ede9fe; color: #6d28d9; }
+    .freq-monthly { background: #fce7f3; color: #be185d; }
     .snooze-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-family: inherit; }
     body.dark-mode { background: #0f172a; color: #e2e8f0; }
     body.dark-mode #app { background: #0f172a; }
@@ -227,6 +232,7 @@
       <button class="tab" onclick="switchTab('tasks')" id="tab-tasks">Tasks</button>
       <button class="tab" onclick="switchTab('events')" id="tab-events">Events</button>
       <button class="tab" onclick="switchTab('notes')" id="tab-notes">Notes</button>
+      <button class="tab" onclick="switchTab('recurring')" id="tab-recurring">🔁 Recurring</button>
     </div>
 
     <!-- Search Bar -->
@@ -1492,7 +1498,9 @@
           <div class="calendar-day-number">${day}</div>
           <div style="margin-top: 4px;">`;
         dayEvents.forEach(e => {
-          html += `<div style="font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; background: ${getCategoryColor(e.category)}20; color: ${getCategoryColor(e.category)};" title="${escapeHtml(e.title)}">${escapeHtml(e.title)}</div>`;
+          const pillClass = e.category ? '' : 'uncategorized-pill';
+          const pillStyle = e.category ? `background: ${getCategoryColor(e.category)}20; color: ${getCategoryColor(e.category)};` : '';
+          html += `<div class="${pillClass}" style="font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; ${pillStyle}" title="${escapeHtml(e.title)}${e.category ? '' : ' (no category)'}">${escapeHtml(e.title)}</div>`;
         });
         html += `</div></div>`;
       }
@@ -1548,6 +1556,57 @@
       return html;
     }
 
+    function getNextOccurrence(item) {
+      const now = new Date();
+      let next = new Date(item.datetime);
+      if (next >= now) return next;
+      while (next < now) {
+        if (item.recurrence === 'daily') next.setDate(next.getDate() + 1);
+        else if (item.recurrence === 'weekly') next.setDate(next.getDate() + 7);
+        else if (item.recurrence === 'monthly') next.setMonth(next.getMonth() + 1);
+        else break;
+      }
+      return next;
+    }
+
+    function renderRecurring() {
+      const recurringTasks = data.tasks.filter(t => t.recurrence && t.recurrence !== 'none').map(t => ({...t, _type: 'task'}));
+      const recurringEvents = data.events.filter(e => e.recurrence && e.recurrence !== 'none').map(e => ({...e, _type: 'event'}));
+      let items = filterItems([...recurringTasks, ...recurringEvents]);
+      items = items.sort((a, b) => getNextOccurrence(a) - getNextOccurrence(b));
+
+      if (items.length === 0) {
+        return `<div class="card empty-state">No recurring tasks or events yet. Set "Repeat" to Daily/Weekly/Monthly when adding an item to see it here.</div>`;
+      }
+
+      let html = `<div style="font-size: 0.85rem; color: #64748b; margin-bottom: 16px;">${items.length} recurring item(s), sorted by next occurrence.</div>`;
+      items.forEach(item => {
+        const next = getNextOccurrence(item);
+        const catColor = getCategoryColor(item.category);
+        const catStyle = item.category ? `background:${catColor}20; color:${catColor};` : '';
+        const catClass = item.category ? '' : 'uncategorized-pill';
+        html += `<div class="card">
+          <div class="card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="recurring-freq-badge freq-${item.recurrence}">${item.recurrence === 'daily' ? '📅' : item.recurrence === 'weekly' ? '📆' : '📊'} ${item.recurrence}</span>
+              <span class="card-title">${escapeHtml(item.title)}</span>
+            </div>
+            <span class="badge ${item._type === 'task' ? 'badge-medium' : 'badge-event'}">${item._type === 'task' ? 'Task' : 'Event'}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span class="badge-tag ${catClass}" style="${catStyle}">${escapeHtml(getCategoryName(item.category))}</span>
+          </div>
+          <div class="card-meta">Next: ${formatDate(next)}</div>
+          ${renderTags(item.tags)}
+          <div class="action-btns" style="margin-top:8px;">
+            <button class="btn btn-ghost btn-small" onclick="openEditModal('${item.id}', '${item._type}')">✏️ Edit</button>
+            <button class="btn btn-danger btn-small" onclick="deleteItem('${item.id}', '${item._type}')">🗑️ Delete</button>
+          </div>
+        </div>`;
+      });
+      return html;
+    }
+
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;
@@ -1560,6 +1619,7 @@
       else if (currentTab === 'tasks') content.innerHTML = renderTasks();
       else if (currentTab === 'events') content.innerHTML = renderEvents();
       else if (currentTab === 'notes') content.innerHTML = renderNotes();
+      else if (currentTab === 'recurring') content.innerHTML = renderRecurring();
     }
 
     function setTaskFilter(filter) { taskFilter = filter; render(); }
