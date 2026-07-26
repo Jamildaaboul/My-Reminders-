@@ -456,6 +456,7 @@
           <button class="btn btn-ghost" id="googleDisconnectBtn" onclick="disconnectGoogleCalendar()" style="display: none;">Disconnect</button>
         </div>
         <button class="btn btn-primary" onclick="recoverFromGoogleCalendar()" style="width: 100%; margin-bottom: 16px;">♻️ Recover Tasks/Events from Google Calendar</button>
+        <button class="btn btn-ghost" onclick="syncNow()" style="width: 100%; margin-bottom: 8px;">🔄 Sync Now (check Google Calendar for changes)</button>
         <button class="btn btn-danger" onclick="clearAllEvents()" style="width: 100%; margin-bottom: 16px;">🧹 Clear All Events (RemindMe only, Google Calendar untouched)</button>
 
         <div class="section-title">Cloud Sync</div>
@@ -1272,6 +1273,15 @@
       await saveDataToFirebase();
       render();
       alert('Cleared. Your Google Calendar is untouched -- add back any real reminders manually.');
+    }
+
+    async function syncNow() {
+      if (!data.settings.googleCalendarConnected) {
+        alert('Connect Google Calendar first.');
+        return;
+      }
+      await pullFromGoogleCalendar();
+      alert('Sync check complete. Any changes made directly in Google Calendar should now be reflected here.');
     }
 
     function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
