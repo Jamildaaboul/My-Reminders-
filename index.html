@@ -456,6 +456,7 @@
           <button class="btn btn-ghost" id="googleDisconnectBtn" onclick="disconnectGoogleCalendar()" style="display: none;">Disconnect</button>
         </div>
         <button class="btn btn-primary" onclick="recoverFromGoogleCalendar()" style="width: 100%; margin-bottom: 16px;">♻️ Recover Tasks/Events from Google Calendar</button>
+        <button class="btn btn-danger" onclick="clearAllEvents()" style="width: 100%; margin-bottom: 16px;">🧹 Clear All Events (RemindMe only, Google Calendar untouched)</button>
 
         <div class="section-title">Cloud Sync</div>
         <div id="syncStatus" style="padding: 12px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; margin-bottom: 16px;"></div>
@@ -1040,7 +1041,13 @@
         summary: item.title,
         description: item.desc || '',
         start: { dateTime: start.toISOString() },
-        end: { dateTime: end.toISOString() }
+        end: { dateTime: end.toISOString() },
+        extendedProperties: {
+          private: {
+            remindmeManaged: 'true',
+            remindmeId: item.id
+          }
+        }
       };
       if (item.recurrence && item.recurrence !== 'none') {
         const rruleMap = { daily: 'DAILY', weekly: 'WEEKLY', monthly: 'MONTHLY' };
@@ -1123,22 +1130,34 @@
       if (!ready) return;
 
       try {
-        const timeMin = new Date(Date.now() - 30 * 86400000).toISOString();
-        const res = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&maxResults=250&singleEvents=true`,
-          { headers: { Authorization: `Bearer ${googleAccessToken}` } }
-        );
+        // privateExtendedProperty filters the API response server-side to ONLY events
+        // RemindMe itself created and tagged. Personal calendar entries (church,
+        // appointments, anything not created by this app) are never included here,
+        // even if this code has bugs -- Google's API does the filtering, not our logic.
+        const timeMin = new Date(Date.now() - 90 * 86400000).toISOString();
+        const timeMax = new Date(Date.now() + 365 * 86400000).toISOString();
+        const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events` +
+          `?timeMin=${encodeURIComponent(timeMin)}` +
+          `&timeMax=${encodeURIComponent(timeMax)}` +
+          `&privateExtendedProperty=remindmeManaged%3Dtrue` +
+          `&maxResults=250&singleEvents=true`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${googleAccessToken}` } });
         if (!res.ok) return;
         const json = await res.json();
         if (!json.items || !Array.isArray(json.items)) return;
 
         let changed = false;
-        const googleEventIds = new Set(json.items.map(e => e.id));
         const allLocalItems = [...data.tasks, ...data.events];
 
         json.items.forEach(gEvent => {
-          const localItem = allLocalItems.find(it => it.googleEventId === gEvent.id);
-          if (!localItem) return;
+          if (gEvent.status === 'cancelled') return;
+          const remindmeId = gEvent.extendedProperties && gEvent.extendedProperties.private
+            ? gEvent.extendedProperties.private.remindmeId : null;
+          if (!remindmeId) return; // safety net: skip anything not clearly tagged as ours
+
+          const localItem = allLocalItems.find(it => it.id === remindmeId || it.googleEventId === gEvent.id);
+          if (!localItem) return; // it's ours but we don't have it locally -- leave it, don't guess
+
           const gUpdated = gEvent.updated ? new Date(gEvent.updated).getTime() : 0;
           const lastSync = localItem._lastGoogleSync ? new Date(localItem._lastGoogleSync).getTime() : 0;
           if (gUpdated > lastSync) {
@@ -1153,11 +1172,8 @@
           }
         });
 
-        // NOTE: intentionally NOT removing local items that are absent from this Google
-        // Calendar fetch. Recurring events, pagination limits, and timing gaps between
-        // push and pull can all make an item look "missing" from Google when it isn't
-        // actually deleted -- treating absence as deletion risks destroying real data.
-        // This sync only ever updates/adds from Google; it never deletes locally.
+        // Deliberately does not delete local items under any circumstance. Deletion
+        // only ever happens through explicit user action in the app (or by trashing).
 
         if (changed) {
           await saveDataToFirebase();
@@ -1182,10 +1198,12 @@
       try {
         const timeMin = new Date(Date.now() - 180 * 86400000).toISOString();
         const timeMax = new Date(Date.now() + 365 * 86400000).toISOString();
-        const res = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&maxResults=2500&singleEvents=true`,
-          { headers: { Authorization: `Bearer ${googleAccessToken}` } }
-        );
+        const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events` +
+          `?timeMin=${encodeURIComponent(timeMin)}` +
+          `&timeMax=${encodeURIComponent(timeMax)}` +
+          `&privateExtendedProperty=remindmeManaged%3Dtrue` +
+          `&maxResults=2500&singleEvents=true`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${googleAccessToken}` } });
         if (!res.ok) { alert('Could not fetch from Google Calendar (status ' + res.status + ').'); return; }
         const json = await res.json();
         if (!json.items || !Array.isArray(json.items)) { alert('No events found.'); return; }
@@ -1244,6 +1262,16 @@
         console.error('Recovery error:', e);
         alert('Something went wrong during recovery. Check the console for details.');
       }
+    }
+
+    async function clearAllEvents() {
+      const count = data.events.length;
+      if (count === 0) { alert('No events to clear.'); return; }
+      if (!confirm(`This will permanently delete all ${count} events from RemindMe only. Your actual Google Calendar will NOT be touched. Continue?`)) return;
+      data.events = [];
+      await saveDataToFirebase();
+      render();
+      alert('Cleared. Your Google Calendar is untouched -- add back any real reminders manually.');
     }
 
     function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
