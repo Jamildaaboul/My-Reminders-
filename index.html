@@ -455,6 +455,7 @@
           </button>
           <button class="btn btn-ghost" id="googleDisconnectBtn" onclick="disconnectGoogleCalendar()" style="display: none;">Disconnect</button>
         </div>
+        <button class="btn btn-primary" onclick="recoverFromGoogleCalendar()" style="width: 100%; margin-bottom: 16px;">♻️ Recover Tasks/Events from Google Calendar</button>
 
         <div class="section-title">Cloud Sync</div>
         <div id="syncStatus" style="padding: 12px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; margin-bottom: 16px;"></div>
@@ -1152,16 +1153,11 @@
           }
         });
 
-        ['tasks', 'events'].forEach(key => {
-          const filtered = data[key].filter(it => {
-            if (it.googleEventId && !googleEventIds.has(it.googleEventId)) {
-              changed = true;
-              return false;
-            }
-            return true;
-          });
-          data[key] = filtered;
-        });
+        // NOTE: intentionally NOT removing local items that are absent from this Google
+        // Calendar fetch. Recurring events, pagination limits, and timing gaps between
+        // push and pull can all make an item look "missing" from Google when it isn't
+        // actually deleted -- treating absence as deletion risks destroying real data.
+        // This sync only ever updates/adds from Google; it never deletes locally.
 
         if (changed) {
           await saveDataToFirebase();
@@ -1169,6 +1165,84 @@
         }
       } catch (e) {
         console.error('Google Calendar pull error:', e);
+      }
+    }
+
+    // ===== One-time recovery: rebuild local tasks/events from Google Calendar =====
+    async function recoverFromGoogleCalendar() {
+      if (!data.settings.googleCalendarConnected) {
+        alert('Connect Google Calendar first (above), then try recovery again.');
+        return;
+      }
+      if (!confirm('This will scan your Google Calendar and re-add any tasks/events that are missing from RemindMe. It will NOT create duplicates or touch your notes. Continue?')) return;
+
+      const ready = await ensureFreshGoogleToken();
+      if (!ready) { alert('Could not connect to Google Calendar. Try reconnecting first.'); return; }
+
+      try {
+        const timeMin = new Date(Date.now() - 180 * 86400000).toISOString();
+        const timeMax = new Date(Date.now() + 365 * 86400000).toISOString();
+        const res = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&maxResults=2500&singleEvents=true`,
+          { headers: { Authorization: `Bearer ${googleAccessToken}` } }
+        );
+        if (!res.ok) { alert('Could not fetch from Google Calendar (status ' + res.status + ').'); return; }
+        const json = await res.json();
+        if (!json.items || !Array.isArray(json.items)) { alert('No events found.'); return; }
+
+        const existingIds = new Set([...data.tasks, ...data.events].map(it => it.googleEventId).filter(Boolean));
+        const existingByTitleTime = new Set(
+          [...data.tasks, ...data.events].map(it => (it.title || '').trim().toLowerCase() + '|' + (it.datetime || ''))
+        );
+
+        let recovered = 0;
+        json.items.forEach(gEvent => {
+          if (!gEvent.id || gEvent.status === 'cancelled') return;
+          if (existingIds.has(gEvent.id)) return;
+
+          const startRaw = gEvent.start && (gEvent.start.dateTime || gEvent.start.date);
+          if (!startRaw) return;
+          const isoDatetime = new Date(startRaw).toISOString();
+          const title = gEvent.summary || '(untitled)';
+          const dupKey = title.trim().toLowerCase() + '|' + isoDatetime;
+          if (existingByTitleTime.has(dupKey)) return;
+
+          let recurrence = 'none';
+          if (gEvent.recurrence && gEvent.recurrence.length) {
+            const rule = gEvent.recurrence.join(';');
+            if (/FREQ=DAILY/.test(rule)) recurrence = 'daily';
+            else if (/FREQ=WEEKLY/.test(rule)) recurrence = 'weekly';
+            else if (/FREQ=MONTHLY/.test(rule)) recurrence = 'monthly';
+          }
+
+          const recoveredItem = {
+            id: generateId(),
+            title: title,
+            desc: gEvent.description || '',
+            datetime: isoDatetime,
+            category: '',
+            tags: [],
+            recurrence: recurrence,
+            notification: 'none',
+            googleEventId: gEvent.id,
+            _lastGoogleSync: new Date().toISOString()
+          };
+          data.events.push(recoveredItem);
+          existingByTitleTime.add(dupKey);
+          recovered++;
+        });
+
+        if (recovered > 0) {
+          await saveDataToFirebase();
+          render();
+          updateCategorySelects();
+        }
+        alert(recovered > 0
+          ? `Recovered ${recovered} item(s) from Google Calendar. They were added to your Events tab — review them and move any that were originally tasks back into Tasks manually, and re-add categories/tags as needed.`
+          : 'No missing items found to recover.');
+      } catch (e) {
+        console.error('Recovery error:', e);
+        alert('Something went wrong during recovery. Check the console for details.');
       }
     }
 
