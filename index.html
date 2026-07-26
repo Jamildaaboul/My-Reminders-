@@ -11,8 +11,9 @@
   <title>RemindMe - Tasks, Events & Notes</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -71,6 +72,8 @@
     .btn-ghost { background: transparent; color: #64748b; }
     .btn-ghost:hover { background: #f1f5f9; }
     .btn-small { padding: 4px 8px; font-size: 0.85rem; }
+    .btn-google { background: #ffffff; color: #3c4043; border: 1px solid #dadce0; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+    .btn-google:hover { background: #f8f9fa; }
     .form-group { margin-bottom: 16px; }
     .form-label { display: block; margin-bottom: 6px; font-weight: 600; color: #334155; font-size: 0.9rem; }
     .form-input, .form-textarea, .form-select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box; font-family: inherit; }
@@ -397,6 +400,16 @@
         <div class="section-title">Notification Status</div>
         <div id="notificationStatus" style="padding: 12px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; margin-bottom: 16px;"></div>
 
+        <div class="section-title">Google Calendar</div>
+        <div id="googleCalendarStatus" style="padding: 12px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; margin-bottom: 12px;"></div>
+        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+          <button class="btn btn-google" id="googleConnectBtn" onclick="connectGoogleCalendar()" style="flex: 1;">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path></svg>
+            Connect Google Calendar
+          </button>
+          <button class="btn btn-ghost" id="googleDisconnectBtn" onclick="disconnectGoogleCalendar()" style="display: none;">Disconnect</button>
+        </div>
+
         <div class="section-title">Cloud Sync</div>
         <div id="syncStatus" style="padding: 12px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; margin-bottom: 16px;"></div>
 
@@ -405,9 +418,9 @@
 
         <div class="section-title">About</div>
         <div style="font-size: 0.9rem; color: #64748b;">
-          <p><strong>RemindMe v3.0</strong></p>
+          <p><strong>RemindMe v3.1</strong></p>
           <p>🌲 Your personal task, event & notes manager</p>
-          <p style="margin-top: 8px;">Features: Categories, Tags, Search, Recurring Tasks, Notifications, Cloud Sync, Calendar Export</p>
+          <p style="margin-top: 8px;">Features: Categories, Tags, Search, Recurring Tasks, Notifications, Cloud Sync, Google Calendar Sync, Calendar Export</p>
         </div>
       </div>
     </div>
@@ -430,8 +443,17 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    // ===== Google Calendar Configuration =====
+    // TODO: Replace with your own OAuth Client ID from Google Cloud Console
+    const GOOGLE_CLIENT_ID = "343807923680-7aolf8allvj33g14u139hh9i0hf1hi8a.apps.googleusercontent.com";
+    const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+    let tokenClient = null;
+    let googleAccessToken = null;
+    let googleTokenExpiresAt = 0;
+    let googleClientReady = false;
+
     const COLORS = ['#2E7D32', '#1e88e5', '#f57c00', '#c2185b', '#6a1b9a', '#00796b', '#d32f2f', '#7b1fa2'];
-    let data = { tasks: [], events: [], notes: [], categories: [], settings: { notificationsEnabled: false } };
+    let data = { tasks: [], events: [], notes: [], categories: [], settings: { notificationsEnabled: false, googleCalendarConnected: false } };
     let currentTab = 'dashboard';
     let taskFilter = 'all';
     let currentMonth = new Date();
@@ -451,6 +473,7 @@
         document.getElementById('app').style.display = 'block';
         await loadDataFromFirebase();
         updateSyncStatus();
+        initGoogleClientWhenReady();
       } else {
         currentUser = null;
         document.getElementById('app').style.display = 'none';
@@ -530,6 +553,8 @@
         const doc = await db.collection('users').doc(currentUser.uid).get();
         if (doc.exists) {
           data = doc.data();
+          if (!data.settings) data.settings = { notificationsEnabled: false, googleCalendarConnected: false };
+          if (data.settings.googleCalendarConnected === undefined) data.settings.googleCalendarConnected = false;
         } else {
           initializeData();
           await saveDataToFirebase();
@@ -571,7 +596,7 @@
         try {
           data = JSON.parse(saved);
           if (!data.categories) data.categories = [];
-          if (!data.settings) data.settings = { notificationsEnabled: false };
+          if (!data.settings) data.settings = { notificationsEnabled: false, googleCalendarConnected: false };
         } catch (e) {
           initializeData();
         }
@@ -586,7 +611,7 @@
 
     function initializeData() {
       const now = new Date();
-      data.settings = { notificationsEnabled: false };
+      data.settings = { notificationsEnabled: false, googleCalendarConnected: false };
       data.categories = [
         { id: 'c1', name: 'Work', color: '#1e88e5' },
         { id: 'c2', name: 'Personal', color: '#2E7D32' },
@@ -634,6 +659,197 @@
         status.style.background = '#fee2e2';
         status.style.color = '#7f1d1d';
       }
+    }
+
+    // ===== Google Calendar Integration =====
+
+    function initGoogleClientWhenReady() {
+      if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+        setupGoogleTokenClient();
+      } else {
+        let attempts = 0;
+        const poll = setInterval(() => {
+          attempts++;
+          if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+            clearInterval(poll);
+            setupGoogleTokenClient();
+          } else if (attempts > 20) {
+            clearInterval(poll);
+          }
+        }, 250);
+      }
+    }
+
+    function setupGoogleTokenClient() {
+      if (googleClientReady) return;
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: GOOGLE_CALENDAR_SCOPE,
+        callback: (tokenResponse) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            googleAccessToken = tokenResponse.access_token;
+            googleTokenExpiresAt = Date.now() + (tokenResponse.expires_in * 1000);
+            data.settings.googleCalendarConnected = true;
+            saveDataToFirebase();
+            updateGoogleCalendarStatus();
+            syncAllToGoogleCalendar();
+          }
+        },
+      });
+      googleClientReady = true;
+      updateGoogleCalendarStatus();
+    }
+
+    function connectGoogleCalendar() {
+      if (!tokenClient) {
+        alert('Google Calendar connection is still loading. Please try again in a moment.');
+        initGoogleClientWhenReady();
+        return;
+      }
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+
+    function disconnectGoogleCalendar() {
+      if (googleAccessToken && window.google) {
+        google.accounts.oauth2.revoke(googleAccessToken, () => {});
+      }
+      googleAccessToken = null;
+      googleTokenExpiresAt = 0;
+      data.settings.googleCalendarConnected = false;
+      saveDataToFirebase();
+      updateGoogleCalendarStatus();
+    }
+
+    function updateGoogleCalendarStatus() {
+      const status = document.getElementById('googleCalendarStatus');
+      const connectBtn = document.getElementById('googleConnectBtn');
+      const disconnectBtn = document.getElementById('googleDisconnectBtn');
+      if (!status) return;
+
+      const hasValidToken = googleAccessToken && Date.now() < googleTokenExpiresAt;
+
+      if (data.settings.googleCalendarConnected && hasValidToken) {
+        status.innerHTML = '✅ <strong>Connected</strong><br><small>Tasks & events sync to your primary Google Calendar automatically</small>';
+        status.style.background = '#dbeafe';
+        status.style.color = '#0c4a6e';
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'block';
+      } else if (data.settings.googleCalendarConnected && !hasValidToken) {
+        status.innerHTML = '⚠️ <strong>Session expired</strong><br><small>Reconnect to resume syncing to Google Calendar</small>';
+        status.style.background = '#fef3c7';
+        status.style.color = '#92400e';
+        connectBtn.style.display = 'flex';
+        connectBtn.innerHTML = '🔄 Reconnect Google Calendar';
+        disconnectBtn.style.display = 'block';
+      } else {
+        status.innerHTML = '❌ <strong>Not connected</strong><br><small>Connect to automatically sync tasks & events to Google Calendar</small>';
+        status.style.background = '#fee2e2';
+        status.style.color = '#7f1d1d';
+        connectBtn.style.display = 'flex';
+        disconnectBtn.style.display = 'none';
+      }
+    }
+
+    function ensureFreshGoogleToken() {
+      return new Promise((resolve) => {
+        if (googleAccessToken && Date.now() < googleTokenExpiresAt - 60000) {
+          resolve(true);
+          return;
+        }
+        if (!tokenClient || !data.settings.googleCalendarConnected) {
+          resolve(false);
+          return;
+        }
+        const prevCallback = tokenClient.callback;
+        tokenClient.callback = (tokenResponse) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            googleAccessToken = tokenResponse.access_token;
+            googleTokenExpiresAt = Date.now() + (tokenResponse.expires_in * 1000);
+            updateGoogleCalendarStatus();
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+          tokenClient.callback = prevCallback;
+        };
+        try {
+          tokenClient.requestAccessToken({ prompt: '' });
+        } catch (e) {
+          resolve(false);
+        }
+      });
+    }
+
+    function toGoogleEventPayload(item) {
+      const start = new Date(item.datetime);
+      const end = new Date(start.getTime() + 3600000);
+      const payload = {
+        summary: item.title,
+        description: item.desc || '',
+        start: { dateTime: start.toISOString() },
+        end: { dateTime: end.toISOString() }
+      };
+      if (item.recurrence && item.recurrence !== 'none') {
+        const rruleMap = { daily: 'DAILY', weekly: 'WEEKLY', monthly: 'MONTHLY' };
+        payload.recurrence = [`RRULE:FREQ=${rruleMap[item.recurrence]}`];
+      }
+      return payload;
+    }
+
+    async function pushToGoogleCalendar(item, type) {
+      if (type === 'note') return;
+      if (!data.settings.googleCalendarConnected) return;
+      const ready = await ensureFreshGoogleToken();
+      if (!ready) { updateGoogleCalendarStatus(); return; }
+
+      const payload = toGoogleEventPayload(item);
+      try {
+        if (item.googleEventId) {
+          const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${item.googleEventId}`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${googleAccessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res.status === 404) {
+            item.googleEventId = null;
+            await pushToGoogleCalendar(item, type);
+          }
+        } else {
+          const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${googleAccessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const json = await res.json();
+          if (json.id) {
+            item.googleEventId = json.id;
+            await saveDataToFirebase();
+          }
+        }
+      } catch (e) {
+        console.error('Google Calendar sync error:', e);
+      }
+    }
+
+    async function deleteFromGoogleCalendar(item) {
+      if (!data.settings.googleCalendarConnected || !item.googleEventId) return;
+      const ready = await ensureFreshGoogleToken();
+      if (!ready) return;
+      try {
+        await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${item.googleEventId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${googleAccessToken}` }
+        });
+      } catch (e) {
+        console.error('Google Calendar delete error:', e);
+      }
+    }
+
+    async function syncAllToGoogleCalendar() {
+      if (!data.settings.googleCalendarConnected) return;
+      for (const t of data.tasks) { if (!t.done) await pushToGoogleCalendar(t, 'task'); }
+      for (const e of data.events) { await pushToGoogleCalendar(e, 'event'); }
+      await saveDataToFirebase();
     }
 
     function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
@@ -972,6 +1188,7 @@
       await saveDataToFirebase();
       closeModal('addModal');
       render();
+      pushToGoogleCalendar(item, type);
     }
 
     function openEditModal(id, type) {
@@ -1009,18 +1226,32 @@
       await saveDataToFirebase();
       closeModal('editModal');
       render();
+      pushToGoogleCalendar(item, type);
     }
 
     async function deleteItem(id, type) {
       if (!confirm('Are you sure you want to delete this item?')) return;
+      const item = data[type + 's'].find(x => x.id === id);
       data[type + 's'] = data[type + 's'].filter(x => x.id !== id);
       await saveDataToFirebase();
       render();
+      if (item) deleteFromGoogleCalendar(item);
     }
 
     async function toggleTask(id) {
       const task = data.tasks.find(t => t.id === id);
-      if (task) { task.done = !task.done; await saveDataToFirebase(); render(); }
+      if (task) {
+        task.done = !task.done;
+        await saveDataToFirebase();
+        render();
+        if (task.done) {
+          deleteFromGoogleCalendar(task);
+          task.googleEventId = null;
+          await saveDataToFirebase();
+        } else {
+          pushToGoogleCalendar(task, 'task');
+        }
+      }
     }
 
     function openCategoriesModal() {
@@ -1079,6 +1310,7 @@
       document.getElementById('notificationsToggle').checked = data.settings.notificationsEnabled;
       updateNotificationStatus();
       updateSyncStatus();
+      updateGoogleCalendarStatus();
       document.getElementById('settingsModal').style.display = 'flex';
     }
 
