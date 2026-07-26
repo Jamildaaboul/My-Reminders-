@@ -49,7 +49,7 @@
     .auth-form { display: flex; flex-direction: column; gap: 16px; }
     .tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; overflow-x: auto; }
     .tab { padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; color: #64748b; transition: all 0.2s; border: none; background: transparent; white-space: nowrap; }
-    .tab.active { background: #2E7D32; color: white; }
+    .tab.active { background: var(--accent, #2E7D32); color: white; }
     .tab:hover:not(.active) { background: #e2e8f0; color: #334155; }
     .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -65,8 +65,8 @@
     .badge-recurring { background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; display: inline-block; margin-right: 4px; }
     .badge-synced { background: #d1fae5; color: #059669; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; }
     .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: inherit; }
-    .btn-primary { background: #2E7D32; color: white; }
-    .btn-primary:hover { background: #1B5E20; }
+    .btn-primary { background: var(--accent, #2E7D32); color: white; }
+    .btn-primary:hover { filter: brightness(0.85); }
     .btn-danger { background: #ef4444; color: white; }
     .btn-danger:hover { background: #dc2626; }
     .btn-ghost { background: transparent; color: #64748b; }
@@ -77,7 +77,7 @@
     .form-group { margin-bottom: 16px; }
     .form-label { display: block; margin-bottom: 6px; font-weight: 600; color: #334155; font-size: 0.9rem; }
     .form-input, .form-textarea, .form-select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box; font-family: inherit; }
-    .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: #2E7D32; box-shadow: 0 0 0 3px rgba(46,125,50,0.1); }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: var(--accent, #2E7D32); box-shadow: 0 0 0 3px rgba(46,125,50,0.1); }
     .form-textarea { min-height: 100px; resize: vertical; }
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
     .modal { background: white; padding: 24px; border-radius: 16px; width: 100%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
@@ -86,7 +86,7 @@
     .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8; }
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-    .stat-value { font-size: 2rem; font-weight: 800; color: #2E7D32; }
+    .stat-value { font-size: 2rem; font-weight: 800; color: var(--accent, #2E7D32); }
     .stat-label { color: #64748b; font-size: 0.9rem; margin-top: 4px; }
     .section-title { font-size: 1.1rem; font-weight: 700; color: #334155; margin-bottom: 12px; margin-top: 20px; }
     .empty-state { text-align: center; padding: 40px; color: #94a3b8; }
@@ -126,9 +126,9 @@
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: 0.3s; border-radius: 24px; }
     .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%; }
-    input:checked + .slider { background-color: #2E7D32; }
+    input:checked + .slider { background-color: var(--accent, #2E7D32); }
     input:checked + .slider:before { transform: translateX(26px); }
-    .auth-link { color: #2E7D32; cursor: pointer; text-decoration: underline; }
+    .auth-link { color: var(--accent, #2E7D32); cursor: pointer; text-decoration: underline; }
     .error-message { color: #dc2626; background: #fee2e2; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
     .success-message { color: #059669; background: #d1fae5; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
     .export-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -142,6 +142,17 @@
     .freq-daily { background: #dbeafe; color: #1e40af; }
     .freq-weekly { background: #ede9fe; color: #6d28d9; }
     .freq-monthly { background: #fce7f3; color: #be185d; }
+    .undo-snackbar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 20px; border-radius: 10px; display: flex; align-items: center; gap: 16px; z-index: 3000; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.9rem; }
+    .undo-btn { background: transparent; color: #86efac; border: none; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 0.9rem; }
+    .streak-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; background: #fef3c7; color: #b45309; }
+    .voice-btn { background: transparent; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 1.1rem; }
+    .voice-btn.listening { background: #fee2e2; border-color: #ef4444; animation: pulse 1s infinite; }
+    .theme-swatch { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
+    .theme-swatch.selected { border-color: #334155; }
+    .stat-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+    .stat-mini-row:last-child { border-bottom: none; }
+    body.dark-mode .stat-mini-row { border-color: #334155; }
+
     .snooze-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-family: inherit; }
     body.dark-mode { background: linear-gradient(165deg, #0a1712 0%, #0d1a24 40%, #0f172a 75%, #0b1410 100%); color: #e2e8f0; }
     body.dark-mode #app { background: #0f172a; }
@@ -224,6 +235,7 @@
 
     <div class="quick-add-bar">
       <input type="text" class="form-input" id="quickAddInput" placeholder="Quick add: e.g. 'Call dentist tomorrow 3pm'" onkeydown="if(event.key==='Enter') quickAdd()">
+      <button class="voice-btn" id="voiceBtn" onclick="startVoiceInput()" style="display:none;" title="Add by voice">🎤</button>
       <button class="btn btn-primary" onclick="quickAdd()">Add</button>
     </div>
 
@@ -272,6 +284,10 @@
         <div class="form-group" id="dateGroup">
           <label class="form-label">Date & Time</label>
           <input type="datetime-local" class="form-input" id="newDateTime">
+        </div>
+        <div class="form-group" id="locationGroup">
+          <label class="form-label">Location (optional)</label>
+          <input type="text" class="form-input" id="newLocation" placeholder="e.g., 123 Main St, or a place name">
         </div>
         <div class="form-group" id="priorityGroup">
           <label class="form-label">Priority</label>
@@ -341,6 +357,10 @@
           <label class="form-label">Date & Time</label>
           <input type="datetime-local" class="form-input" id="editDateTime">
         </div>
+        <div class="form-group" id="editLocationGroup">
+          <label class="form-label">Location (optional)</label>
+          <input type="text" class="form-input" id="editLocation" placeholder="e.g., 123 Main St, or a place name">
+        </div>
         <div class="form-group" id="editPriorityGroup">
           <label class="form-label">Priority</label>
           <select class="form-select" id="editPriority">
@@ -409,6 +429,17 @@
       </div>
     </div>
 
+    <!-- Stats Modal -->
+    <div id="statsModal" class="modal-overlay" style="display: none;">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">📊 Your Stats</div>
+          <button class="close-btn" onclick="closeModal('statsModal')">&times;</button>
+        </div>
+        <div id="statsContent"></div>
+      </div>
+    </div>
+
     <!-- Trash Modal -->
     <div id="trashModal" class="modal-overlay" style="display: none;">
       <div class="modal">
@@ -444,6 +475,13 @@
             <span class="slider"></span>
           </label>
         </div>
+
+        <div class="form-group">
+          <label class="form-label">Accent Color</label>
+          <div class="color-picker" id="themePicker"></div>
+        </div>
+
+        <button class="btn btn-ghost" onclick="openStatsModal()" style="width: 100%; margin-bottom: 16px;">📊 View Stats</button>
 
         <div class="section-title">Data & Backup</div>
         <div class="export-buttons">
@@ -521,7 +559,8 @@
     let googleSyncPollInterval = null;
 
     const COLORS = ['#2E7D32', '#1e88e5', '#f57c00', '#c2185b', '#6a1b9a', '#00796b', '#d32f2f', '#7b1fa2'];
-    let data = { tasks: [], events: [], notes: [], categories: [], trash: [], settings: { notificationsEnabled: false, googleCalendarConnected: false, darkMode: false } };
+    const THEME_COLORS = ['#2E7D32', '#1e88e5', '#c2185b', '#6a1b9a', '#00796b', '#d97706'];
+    let data = { tasks: [], events: [], notes: [], categories: [], trash: [], settings: { notificationsEnabled: false, googleCalendarConnected: false, darkMode: false, themeColor: '#2E7D32' } };
     let currentTab = 'dashboard';
     let taskFilter = 'all';
     let currentMonth = new Date();
@@ -542,6 +581,7 @@
         await loadDataFromFirebase();
         updateSyncStatus();
         applyDarkMode();
+        applyTheme();
         initGoogleClientWhenReady();
       } else {
         currentUser = null;
@@ -622,12 +662,13 @@
         const doc = await db.collection('users').doc(currentUser.uid).get();
         if (doc.exists) {
           data = doc.data();
-          if (!data.settings) data.settings = { notificationsEnabled: false, googleCalendarConnected: false, darkMode: false };
+          if (!data.settings) data.settings = { notificationsEnabled: false, googleCalendarConnected: false, darkMode: false, themeColor: '#2E7D32' };
           if (data.settings.googleCalendarConnected === undefined) data.settings.googleCalendarConnected = false;
           if (data.settings.darkMode === undefined) data.settings.darkMode = false;
           if (!data.trash) data.trash = [];
           purgeOldTrash();
           applyDarkMode();
+          applyTheme();
           if (data.settings.googleCalendarConnected) startGoogleSyncPolling();
         } else {
           initializeData();
@@ -671,7 +712,7 @@
           data = JSON.parse(saved);
           if (!data.categories) data.categories = [];
           if (!data.trash) data.trash = [];
-          if (!data.settings) data.settings = { notificationsEnabled: false, googleCalendarConnected: false, darkMode: false };
+          if (!data.settings) data.settings = { notificationsEnabled: false, googleCalendarConnected: false, darkMode: false, themeColor: '#2E7D32' };
           if (data.settings.darkMode === undefined) data.settings.darkMode = false;
         } catch (e) {
           initializeData();
@@ -681,6 +722,7 @@
       }
       purgeOldTrash();
       applyDarkMode();
+      applyTheme();
     }
 
     function clearLocalData() {
@@ -689,7 +731,7 @@
 
     function initializeData() {
       const now = new Date();
-      data.settings = { notificationsEnabled: false, googleCalendarConnected: false, darkMode: false };
+      data.settings = { notificationsEnabled: false, googleCalendarConnected: false, darkMode: false, themeColor: '#2E7D32' };
       data.trash = [];
       data.categories = [
         { id: 'c1', name: 'Work', color: '#1e88e5' },
@@ -749,6 +791,28 @@
       data.settings.darkMode = document.getElementById('darkModeToggle').checked;
       saveDataToFirebase();
       applyDarkMode();
+    }
+
+    // ===== Theme accent color =====
+    function applyTheme() {
+      const color = (data.settings && data.settings.themeColor) || '#2E7D32';
+      document.documentElement.style.setProperty('--accent', color);
+    }
+
+    function renderThemePicker() {
+      const picker = document.getElementById('themePicker');
+      if (!picker) return;
+      const current = (data.settings && data.settings.themeColor) || '#2E7D32';
+      picker.innerHTML = THEME_COLORS.map(color =>
+        `<div class="theme-swatch ${color === current ? 'selected' : ''}" style="background: ${color};" onclick="selectTheme('${color}')"></div>`
+      ).join('');
+    }
+
+    async function selectTheme(color) {
+      data.settings.themeColor = color;
+      await saveDataToFirebase();
+      applyTheme();
+      renderThemePicker();
     }
 
     // ===== Trash / Undo Delete =====
@@ -923,6 +987,34 @@
       localStorage.setItem('remindme_install_dismissed', '1');
     }
 
+    // ===== Voice input for Quick Add =====
+    let speechRecognizer = null;
+
+    function initVoiceInput() {
+      const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const btn = document.getElementById('voiceBtn');
+      if (!SpeechRecognitionCtor || !btn) return;
+      btn.style.display = 'inline-flex';
+      speechRecognizer = new SpeechRecognitionCtor();
+      speechRecognizer.lang = 'en-US';
+      speechRecognizer.interimResults = false;
+      speechRecognizer.maxAlternatives = 1;
+      speechRecognizer.onstart = () => btn.classList.add('listening');
+      speechRecognizer.onend = () => btn.classList.remove('listening');
+      speechRecognizer.onerror = () => btn.classList.remove('listening');
+      speechRecognizer.onresult = (e) => {
+        const text = e.results[0][0].transcript;
+        const input = document.getElementById('quickAddInput');
+        input.value = text;
+      };
+    }
+
+    function startVoiceInput() {
+      if (speechRecognizer) {
+        try { speechRecognizer.start(); } catch (e) { /* already listening */ }
+      }
+    }
+
     // ===== Google Calendar Integration =====
 
     function initGoogleClientWhenReady() {
@@ -1051,6 +1143,7 @@
       const payload = {
         summary: item.title,
         description: item.desc || '',
+        location: item.location || '',
         start: { dateTime: start.toISOString() },
         end: { dateTime: end.toISOString() },
         extendedProperties: {
@@ -1294,6 +1387,58 @@
       alert('Sync check complete. Any changes made directly in Google Calendar should now be reflected here.');
     }
 
+    // ===== Stats =====
+    function openStatsModal() {
+      renderStats();
+      document.getElementById('statsModal').style.display = 'flex';
+    }
+
+    function renderStats() {
+      const el = document.getElementById('statsContent');
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 86400000);
+
+      const completionsThisWeek = data.tasks.reduce((sum, t) => {
+        const log = t.completionLog || [];
+        return sum + log.filter(d => new Date(d) >= weekAgo).length;
+      }, 0);
+
+      const allRecurring = [
+        ...data.tasks.filter(t => t.recurrence && t.recurrence !== 'none'),
+        ...data.events.filter(e => e.recurrence && e.recurrence !== 'none')
+      ];
+      let bestStreak = 0;
+      let bestStreakTitle = '';
+      allRecurring.forEach(item => {
+        const s = computeStreak(item);
+        if (s > bestStreak) { bestStreak = s; bestStreakTitle = item.title; }
+      });
+
+      const categoryCounts = {};
+      [...data.tasks, ...data.events].forEach(item => {
+        const name = getCategoryName(item.category);
+        categoryCounts[name] = (categoryCounts[name] || 0) + 1;
+      });
+      let busiestCategory = '—';
+      let busiestCount = 0;
+      Object.entries(categoryCounts).forEach(([name, count]) => {
+        if (count > busiestCount) { busiestCount = count; busiestCategory = name; }
+      });
+
+      const totalTasksEver = data.tasks.length + (data.trash || []).filter(t => t._trashType === 'task').length;
+      const doneNow = data.tasks.filter(t => t.done).length;
+      const totalCompletionsEver = data.tasks.reduce((sum, t) => sum + (t.completionLog || []).length, 0);
+
+      el.innerHTML = `
+        <div class="stat-mini-row"><span>✅ Completions this week</span><strong>${completionsThisWeek}</strong></div>
+        <div class="stat-mini-row"><span>🔥 Best current streak</span><strong>${bestStreak > 0 ? bestStreak + ' — ' + escapeHtml(bestStreakTitle) : '—'}</strong></div>
+        <div class="stat-mini-row"><span>📁 Busiest category</span><strong>${escapeHtml(busiestCategory)} (${busiestCount})</strong></div>
+        <div class="stat-mini-row"><span>📋 Tasks pending right now</span><strong>${data.tasks.filter(t => !t.done).length}</strong></div>
+        <div class="stat-mini-row"><span>🔁 Recurring items</span><strong>${allRecurring.length}</strong></div>
+        <div class="stat-mini-row"><span>✔️ Total completions logged</span><strong>${totalCompletionsEver}</strong></div>
+      `;
+    }
+
     function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 
     function switchTab(tab) {
@@ -1369,6 +1514,19 @@
       return `<span class="badge-recurring">${icons[recurrence] || '📅'} ${recurrence}</span>`;
     }
 
+    function getSmartScore(item) {
+      const now = new Date();
+      const hoursUntil = (new Date(item.datetime) - now) / 3600000;
+      const priorityWeight = { high: 30, medium: 15, low: 5 }[item.priority] || 10;
+      const urgency = hoursUntil <= 0 ? 200 : Math.max(0, 200 - hoursUntil);
+      return urgency + priorityWeight;
+    }
+
+    function locationLine(item) {
+      if (!item.location) return '';
+      return `<div style="font-size:0.85rem; margin-top:4px;">📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}" target="_blank" rel="noopener">${escapeHtml(item.location)}</a></div>`;
+    }
+
     function renderDashboard() {
       const upcomingTasks = data.tasks.filter(t => !t.done).sort((a,b) => new Date(a.datetime) - new Date(b.datetime)).slice(0, 3);
       const upcomingEvents = data.events.sort((a,b) => new Date(a.datetime) - new Date(b.datetime)).slice(0, 3);
@@ -1384,6 +1542,31 @@
         <div class="stat-card"><div class="stat-value">${totalNotes}</div><div class="stat-label">Notes</div></div>
         <div class="stat-card"><div class="stat-value">${recurringCount}</div><div class="stat-label">Recurring</div></div>
       </div>`;
+
+      const smartItems = [
+        ...data.tasks.filter(t => !t.done).map(t => ({...t, _type: 'task'})),
+        ...data.events.filter(e => new Date(e.datetime) >= new Date(new Date().setHours(0,0,0,0))).map(e => ({...e, _type: 'event'}))
+      ].sort((a, b) => getSmartScore(b) - getSmartScore(a)).slice(0, 3);
+
+      html += `<div class="section-title">🎯 What's Next</div>`;
+      if (smartItems.length === 0) {
+        html += `<div class="card empty-state">Nothing urgent right now.</div>`;
+      } else {
+        smartItems.forEach(item => {
+          const status = getReminderStatus(item.datetime);
+          html += `<div class="card">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="reminder-dot ${status.class}"></span>
+                <span class="card-title">${escapeHtml(item.title)}</span>
+              </div>
+              <span class="badge ${item._type === 'task' ? 'badge-' + item.priority : 'badge-event'}">${item._type === 'task' ? item.priority : 'Event'}</span>
+            </div>
+            <div class="card-meta">${formatDate(item.datetime)} • ${status.text}</div>
+            ${locationLine(item)}
+          </div>`;
+        });
+      }
 
       html += `<div class="section-title">🔥 Priority Tasks</div>`;
       if (upcomingTasks.length === 0) {
@@ -1402,6 +1585,7 @@
             <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">${getCategoryName(t.category)}</div>
             <div class="card-meta">${formatDate(t.datetime)} • ${status.text}</div>
             ${renderRecurrence(t.recurrence)}
+            ${locationLine(t)}
             ${renderTags(t.tags)}
           </div>`;
         });
@@ -1420,6 +1604,7 @@
             <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">${getCategoryName(e.category)}</div>
             <div class="card-meta">${formatDate(e.datetime)}</div>
             ${renderRecurrence(e.recurrence)}
+            ${locationLine(e)}
             ${renderTags(e.tags)}
           </div>`;
         });
@@ -1458,6 +1643,7 @@
               <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">${getCategoryName(t.category)}</div>
               <div class="card-meta">${formatDate(t.datetime)} • ${t.done ? 'Completed' : status.text}</div>
               ${renderRecurrence(t.recurrence)}
+              ${locationLine(t)}
               ${renderTags(t.tags)}
               ${t.desc ? `<div style="margin-top: 6px; color: #475569; font-size: 0.9rem;">${escapeHtml(t.desc)}</div>` : ''}
             </div>
@@ -1477,6 +1663,7 @@
       const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
       const cellDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
       if (cellDay < startDay) return false;
+      if (event.skippedDates && event.skippedDates.includes(cellDay.toDateString())) return false;
       if (!event.recurrence || event.recurrence === 'none') {
         return cellDay.getTime() === startDay.getTime();
       }
@@ -1543,6 +1730,7 @@
               </div>
             </div>
             ${renderRecurrence(e.recurrence)}
+            ${locationLine(e)}
             ${renderTags(e.tags)}
             <div style="color: #475569; font-size: 0.9rem;">${escapeHtml(e.desc)}</div>
           </div>`;
@@ -1578,14 +1766,42 @@
     function getNextOccurrence(item) {
       const now = new Date();
       let next = new Date(item.datetime);
-      if (next >= now) return next;
-      while (next < now) {
+      const skipped = new Set(item.skippedDates || []);
+      function advance() {
         if (item.recurrence === 'daily') next.setDate(next.getDate() + 1);
         else if (item.recurrence === 'weekly') next.setDate(next.getDate() + 7);
         else if (item.recurrence === 'monthly') next.setMonth(next.getMonth() + 1);
-        else break;
+      }
+      let guard = 0;
+      while ((next < now || skipped.has(next.toDateString())) && guard < 1000) {
+        if (!item.recurrence || item.recurrence === 'none') break;
+        advance();
+        guard++;
       }
       return next;
+    }
+
+    async function skipNextOccurrence(id, type) {
+      const item = data[type + 's'].find(x => x.id === id);
+      if (!item) return;
+      const next = getNextOccurrence(item);
+      if (!item.skippedDates) item.skippedDates = [];
+      item.skippedDates.push(next.toDateString());
+      await saveDataToFirebase();
+      render();
+    }
+
+    function computeStreak(item) {
+      if (!item.completionLog || item.completionLog.length === 0) return 0;
+      const sorted = [...item.completionLog].map(d => new Date(d)).sort((a, b) => b - a);
+      let streak = 1;
+      const expectedDays = item.recurrence === 'daily' ? 1 : item.recurrence === 'weekly' ? 7 : item.recurrence === 'monthly' ? 30 : 1;
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const diffDays = Math.round((sorted[i] - sorted[i + 1]) / 86400000);
+        if (Math.abs(diffDays - expectedDays) <= Math.max(2, expectedDays * 0.25)) streak++;
+        else break;
+      }
+      return streak;
     }
 
     function renderRecurring() {
@@ -1604,10 +1820,12 @@
         const catColor = getCategoryColor(item.category);
         const catStyle = item.category ? `background:${catColor}20; color:${catColor};` : '';
         const catClass = item.category ? '' : 'uncategorized-pill';
+        const streak = computeStreak(item);
         html += `<div class="card">
           <div class="card-header">
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <span class="recurring-freq-badge freq-${item.recurrence}">${item.recurrence === 'daily' ? '📅' : item.recurrence === 'weekly' ? '📆' : '📊'} ${item.recurrence}</span>
+              ${streak > 0 ? `<span class="streak-badge">🔥 ${streak} streak</span>` : ''}
               <span class="card-title">${escapeHtml(item.title)}</span>
             </div>
             <span class="badge ${item._type === 'task' ? 'badge-medium' : 'badge-event'}">${item._type === 'task' ? 'Task' : 'Event'}</span>
@@ -1616,8 +1834,10 @@
             <span class="badge-tag ${catClass}" style="${catStyle}">${escapeHtml(getCategoryName(item.category))}</span>
           </div>
           <div class="card-meta">Next: ${formatDate(next)}</div>
+          ${item.location ? `<div style="font-size:0.85rem; margin-top:4px;">📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}" target="_blank" rel="noopener">${escapeHtml(item.location)}</a></div>` : ''}
           ${renderTags(item.tags)}
           <div class="action-btns" style="margin-top:8px;">
+            <button class="btn btn-ghost btn-small" onclick="skipNextOccurrence('${item.id}', '${item._type}')">⏭️ Skip Next</button>
             <button class="btn btn-ghost btn-small" onclick="openEditModal('${item.id}', '${item._type}')">✏️ Edit</button>
             <button class="btn btn-danger btn-small" onclick="deleteItem('${item.id}', '${item._type}')">🗑️ Delete</button>
           </div>
@@ -1668,6 +1888,7 @@
       document.getElementById('newDateTime').value = new Date().toISOString().slice(0,16);
       document.getElementById('newPriority').value = 'medium';
       document.getElementById('newTags').value = '';
+      document.getElementById('newLocation').value = '';
       document.getElementById('newCategory').value = '';
       document.getElementById('newRecurrence').value = 'none';
       document.getElementById('newNotification').value = 'none';
@@ -1691,6 +1912,7 @@
         datetime: document.getElementById('newDateTime').value || new Date().toISOString(),
         category: document.getElementById('newCategory').value,
         tags: tags,
+        location: document.getElementById('newLocation').value.trim(),
         recurrence: document.getElementById('newRecurrence').value || 'none',
         notification: document.getElementById('newNotification').value || 'none'
       };
@@ -1712,6 +1934,7 @@
       document.getElementById('editDateTime').value = item.datetime ? item.datetime.slice(0,16) : '';
       document.getElementById('editCategory').value = item.category || '';
       document.getElementById('editTags').value = (item.tags || []).join(', ');
+      document.getElementById('editLocation').value = item.location || '';
       document.getElementById('editRecurrence').value = item.recurrence || 'none';
       document.getElementById('editNotification').value = item.notification || 'none';
       document.getElementById('editPriorityGroup').style.display = type === 'task' ? 'block' : 'none';
@@ -1731,6 +1954,7 @@
       item.datetime = document.getElementById('editDateTime').value;
       item.category = document.getElementById('editCategory').value;
       item.tags = document.getElementById('editTags').value.split(',').map(t => t.trim()).filter(t => t);
+      item.location = document.getElementById('editLocation').value.trim();
       item.recurrence = document.getElementById('editRecurrence').value;
       item.notification = document.getElementById('editNotification').value;
       if (type === 'task') item.priority = document.getElementById('editPriority').value;
@@ -1755,19 +1979,83 @@
       deleteFromGoogleCalendar(item);
     }
 
+    let lastUndoAction = null;
+    let undoSnackbarTimeout = null;
+
+    function showUndoSnackbar(message) {
+      const existing = document.getElementById('undoSnackbar');
+      if (existing) existing.remove();
+      const bar = document.createElement('div');
+      bar.id = 'undoSnackbar';
+      bar.className = 'undo-snackbar';
+      bar.innerHTML = `<span>${escapeHtml(message)}</span><button class="undo-btn" onclick="runUndo()">Undo</button>`;
+      document.body.appendChild(bar);
+      clearTimeout(undoSnackbarTimeout);
+      undoSnackbarTimeout = setTimeout(() => { bar.remove(); lastUndoAction = null; }, 6000);
+    }
+
+    async function runUndo() {
+      const bar = document.getElementById('undoSnackbar');
+      if (bar) bar.remove();
+      if (lastUndoAction) {
+        const fn = lastUndoAction;
+        lastUndoAction = null;
+        await fn();
+      }
+    }
+
     async function toggleTask(id) {
       const task = data.tasks.find(t => t.id === id);
-      if (task) {
-        task.done = !task.done;
-        await saveDataToFirebase();
-        render();
-        if (task.done) {
+      if (!task) return;
+
+      if (!task.done) {
+        // Marking complete
+        if (!task.completionLog) task.completionLog = [];
+        task.completionLog.push(new Date().toISOString());
+        const isRecurring = task.recurrence && task.recurrence !== 'none';
+        const previousDatetime = task.datetime;
+
+        if (isRecurring) {
+          let next = new Date(task.datetime);
+          if (task.recurrence === 'daily') next.setDate(next.getDate() + 1);
+          else if (task.recurrence === 'weekly') next.setDate(next.getDate() + 7);
+          else if (task.recurrence === 'monthly') next.setMonth(next.getMonth() + 1);
+          task.datetime = next.toISOString();
+          task.notified = false;
+
+          lastUndoAction = async () => {
+            task.datetime = previousDatetime;
+            task.completionLog.pop();
+            await saveDataToFirebase();
+            render();
+            pushToGoogleCalendar(task, 'task');
+          };
+          showUndoSnackbar(`"${task.title}" completed — moved to next occurrence`);
+          await saveDataToFirebase();
+          render();
+          pushToGoogleCalendar(task, 'task');
+        } else {
+          task.done = true;
+          lastUndoAction = async () => {
+            task.done = false;
+            task.completionLog.pop();
+            await saveDataToFirebase();
+            render();
+            pushToGoogleCalendar(task, 'task');
+          };
+          showUndoSnackbar(`"${task.title}" completed`);
+          await saveDataToFirebase();
+          render();
           deleteFromGoogleCalendar(task);
           task.googleEventId = null;
           await saveDataToFirebase();
-        } else {
-          pushToGoogleCalendar(task, 'task');
         }
+      } else {
+        // Manually unchecking a completed task
+        task.done = false;
+        await saveDataToFirebase();
+        render();
+        pushToGoogleCalendar(task, 'task');
       }
     }
 
@@ -1826,6 +2114,7 @@
     function openSettingsModal() {
       document.getElementById('notificationsToggle').checked = data.settings.notificationsEnabled;
       document.getElementById('darkModeToggle').checked = !!data.settings.darkMode;
+      renderThemePicker();
       updateNotificationStatus();
       updateSyncStatus();
       updateGoogleCalendarStatus();
@@ -2036,6 +2325,7 @@ DESCRIPTION:${item.desc || ''}
     }
 
     loadLocalData();
+    initVoiceInput();
   </script>
 </body>
 </html>
