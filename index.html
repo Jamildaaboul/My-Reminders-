@@ -35,6 +35,8 @@
       padding: 40px;
       border-radius: 16px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
     }
     .auth-title {
       font-size: 1.8rem;
@@ -137,7 +139,7 @@
   </style>
 </head>
 <body>
-  <div id="authContainer" class="auth-container" style="display: none;">
+  <div id="authContainer" class="auth-container">
     <div class="auth-title">🌲 RemindMe</div>
     <div id="authMessage"></div>
     
@@ -454,6 +456,7 @@
         document.getElementById('app').style.display = 'none';
         document.getElementById('authContainer').style.display = 'flex';
         clearLocalData();
+        loadLocalData();
       }
     });
 
