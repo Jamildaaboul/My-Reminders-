@@ -1628,7 +1628,7 @@
     function updateFormFields() {
       const type = document.getElementById('newType').value;
       document.getElementById('priorityGroup').style.display = type === 'task' ? 'block' : 'none';
-      document.getElementById('recurringGroup').style.display = type === 'task' ? 'block' : 'none';
+      document.getElementById('recurringGroup').style.display = type !== 'note' ? 'block' : 'none';
       document.getElementById('notificationGroup').style.display = type !== 'note' ? 'block' : 'none';
     }
 
@@ -1696,7 +1696,7 @@
       document.getElementById('editRecurrence').value = item.recurrence || 'none';
       document.getElementById('editNotification').value = item.notification || 'none';
       document.getElementById('editPriorityGroup').style.display = type === 'task' ? 'block' : 'none';
-      document.getElementById('editRecurringGroup').style.display = type === 'task' ? 'block' : 'none';
+      document.getElementById('editRecurringGroup').style.display = type !== 'note' ? 'block' : 'none';
       document.getElementById('editNotificationGroup').style.display = type !== 'note' ? 'block' : 'none';
       if (type === 'task') document.getElementById('editPriority').value = item.priority;
       document.getElementById('editModal').style.display = 'flex';
