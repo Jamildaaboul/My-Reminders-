@@ -1529,10 +1529,10 @@
 
     function renderDashboard() {
       const upcomingTasks = data.tasks.filter(t => !t.done).sort((a,b) => new Date(a.datetime) - new Date(b.datetime)).slice(0, 3);
-      const upcomingEvents = data.events.sort((a,b) => new Date(a.datetime) - new Date(b.datetime)).slice(0, 3);
+      const upcomingEvents = data.events.filter(e => !e.done).sort((a,b) => new Date(a.datetime) - new Date(b.datetime)).slice(0, 3);
       const recentNotes = data.notes.slice(0, 2);
       const totalPending = data.tasks.filter(t => !t.done).length;
-      const totalEvents = data.events.length;
+      const totalEvents = data.events.filter(e => !e.done).length;
       const totalNotes = data.notes.length;
       const recurringCount = data.tasks.filter(t => t.recurrence && t.recurrence !== 'none').length;
 
@@ -1545,7 +1545,7 @@
 
       const smartItems = [
         ...data.tasks.filter(t => !t.done).map(t => ({...t, _type: 'task'})),
-        ...data.events.filter(e => new Date(e.datetime) >= new Date(new Date().setHours(0,0,0,0))).map(e => ({...e, _type: 'event'}))
+        ...data.events.filter(e => !e.done && new Date(e.datetime) >= new Date(new Date().setHours(0,0,0,0))).map(e => ({...e, _type: 'event'}))
       ].sort((a, b) => getSmartScore(b) - getSmartScore(a)).slice(0, 3);
 
       html += `<div class="section-title">🎯 What's Next</div>`;
@@ -1665,6 +1665,7 @@
       if (cellDay < startDay) return false;
       if (event.skippedDates && event.skippedDates.includes(cellDay.toDateString())) return false;
       if (!event.recurrence || event.recurrence === 'none') {
+        if (event.done) return false;
         return cellDay.getTime() === startDay.getTime();
       }
       if (event.recurrence === 'daily') return true;
@@ -1673,15 +1674,27 @@
       return false;
     }
 
+    let eventFilterState = 'all';
+
+    function setEventFilter(filter) { eventFilterState = filter; render(); }
+
     function renderEvents() {
       let filteredEvents = filterItems(data.events);
+      if (eventFilterState === 'upcoming') filteredEvents = filteredEvents.filter(e => !e.done);
+      if (eventFilterState === 'completed') filteredEvents = filteredEvents.filter(e => e.done);
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth();
       const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-      let html = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      let html = `<div class="filter-bar">
+        <button class="filter-btn ${eventFilterState === 'all' ? 'active' : ''}" onclick="setEventFilter('all')">All</button>
+        <button class="filter-btn ${eventFilterState === 'upcoming' ? 'active' : ''}" onclick="setEventFilter('upcoming')">Upcoming</button>
+        <button class="filter-btn ${eventFilterState === 'completed' ? 'active' : ''}" onclick="setEventFilter('completed')">Completed</button>
+      </div>`;
+
+      html += `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <button class="btn btn-ghost" onclick="changeMonth(-1)">◀ Prev</button>
         <h2 style="margin: 0; color: #1e293b; font-size: 1.25rem;">${monthNames[month]} ${year}</h2>
         <button class="btn btn-ghost" onclick="changeMonth(1)">Next ▶</button>
@@ -1720,11 +1733,12 @@
           html += `<div class="card">
             <div class="card-header">
               <div>
-                <div class="card-title">${escapeHtml(e.title)}</div>
+                <div class="card-title" style="${e.done ? 'text-decoration: line-through; color: #94a3b8;' : ''}">${escapeHtml(e.title)}</div>
                 <div style="font-size: 0.8rem; color: #999;">${getCategoryName(e.category)}</div>
-                <div class="card-meta">${formatDate(e.datetime)}</div>
+                <div class="card-meta">${formatDate(e.datetime)}${e.done ? ' • Completed' : ''}</div>
               </div>
               <div class="action-btns">
+                <button class="btn ${e.done ? 'btn-ghost' : 'btn-primary'} btn-small" onclick="toggleEventComplete('${e.id}')">${e.done ? '↩️ Undo' : '✅ Complete'}</button>
                 <button class="btn btn-ghost" style="padding: 4px 8px;" onclick="openEditModal('${e.id}', 'event')">✏️</button>
                 <button class="btn btn-danger" style="padding: 4px 8px;" onclick="deleteItem('${e.id}', 'event')">🗑️</button>
               </div>
@@ -1837,6 +1851,7 @@
           ${item.location ? `<div style="font-size:0.85rem; margin-top:4px;">📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}" target="_blank" rel="noopener">${escapeHtml(item.location)}</a></div>` : ''}
           ${renderTags(item.tags)}
           <div class="action-btns" style="margin-top:8px;">
+            <button class="btn btn-primary btn-small" onclick="${item._type === 'task' ? `toggleTask('${item.id}')` : `toggleEventComplete('${item.id}')`}">✅ Complete</button>
             <button class="btn btn-ghost btn-small" onclick="skipNextOccurrence('${item.id}', '${item._type}')">⏭️ Skip Next</button>
             <button class="btn btn-ghost btn-small" onclick="openEditModal('${item.id}', '${item._type}')">✏️ Edit</button>
             <button class="btn btn-danger btn-small" onclick="deleteItem('${item.id}', '${item._type}')">🗑️ Delete</button>
@@ -1916,7 +1931,8 @@
         recurrence: document.getElementById('newRecurrence').value || 'none',
         notification: document.getElementById('newNotification').value || 'none'
       };
-      if (type === 'task') { item.priority = document.getElementById('newPriority').value; item.done = false; }
+      if (type !== 'note') { item.done = false; }
+      if (type === 'task') { item.priority = document.getElementById('newPriority').value; }
       data[type + 's'].push(item);
       await saveDataToFirebase();
       closeModal('addModal');
@@ -2001,6 +2017,58 @@
         const fn = lastUndoAction;
         lastUndoAction = null;
         await fn();
+      }
+    }
+
+    async function toggleEventComplete(id) {
+      const ev = data.events.find(e => e.id === id);
+      if (!ev) return;
+
+      if (!ev.done) {
+        if (!ev.completionLog) ev.completionLog = [];
+        ev.completionLog.push(new Date().toISOString());
+        const isRecurring = ev.recurrence && ev.recurrence !== 'none';
+        const previousDatetime = ev.datetime;
+
+        if (isRecurring) {
+          let next = new Date(ev.datetime);
+          if (ev.recurrence === 'daily') next.setDate(next.getDate() + 1);
+          else if (ev.recurrence === 'weekly') next.setDate(next.getDate() + 7);
+          else if (ev.recurrence === 'monthly') next.setMonth(next.getMonth() + 1);
+          ev.datetime = next.toISOString();
+
+          lastUndoAction = async () => {
+            ev.datetime = previousDatetime;
+            ev.completionLog.pop();
+            await saveDataToFirebase();
+            render();
+            pushToGoogleCalendar(ev, 'event');
+          };
+          showUndoSnackbar(`"${ev.title}" completed — moved to next occurrence`);
+          await saveDataToFirebase();
+          render();
+          pushToGoogleCalendar(ev, 'event');
+        } else {
+          ev.done = true;
+          lastUndoAction = async () => {
+            ev.done = false;
+            ev.completionLog.pop();
+            await saveDataToFirebase();
+            render();
+            pushToGoogleCalendar(ev, 'event');
+          };
+          showUndoSnackbar(`"${ev.title}" completed`);
+          await saveDataToFirebase();
+          render();
+          deleteFromGoogleCalendar(ev);
+          ev.googleEventId = null;
+          await saveDataToFirebase();
+        }
+      } else {
+        ev.done = false;
+        await saveDataToFirebase();
+        render();
+        pushToGoogleCalendar(ev, 'event');
       }
     }
 
